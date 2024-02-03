@@ -15,22 +15,17 @@
 // ==/UserScript==
 
 
-if (GM_getValue("gettingChangelogs", 0) > 0 && window.location.href.includes("steamdb.info/patchnotes/")) {
-    (function () {
+if (GM_getValue("gettingChangelogs", true) > 0 && window.location.href.includes("steamdb.info/patchnotes/")) {
+    (async function () {
         const depotID = GM_getValue("depotID", null);
-        console.log(depotID);
         const depots = document.querySelector(`a[href*="/depot/${depotID}/"]`);
         if (!depots) {
-            let queue = GM_getValue("gettingChangelogs", 0);
-            queue--;
-            GM_setValue("gettingChangelogs", queue);
             window.close();
         }
 
-        const observer = new MutationObserver((mutations, observer) => {
+        const observer = new MutationObserver(async (mutations, observer) => {
             const parentSibling = depots.parentElement.nextElementSibling;
             const li = parentSibling.querySelector('li.versions');
-            console.log("looking");
             if (parentSibling && li) {
                 const versions = parentSibling.children;
                 // Retrieve the existing changelogObject
@@ -57,16 +52,12 @@ if (GM_getValue("gettingChangelogs", 0) > 0 && window.location.href.includes("st
                 }
 
                 GM_setValue("changelogObject", JSON.stringify(existingChangelogObject));
-                console.log(JSON.stringify(existingChangelogObject));
-                let queue = GM_getValue("gettingChangelogs", 0);
-                queue--;
-                GM_setValue("gettingChangelogs", queue);
-                // window.close();
+                window.close();
                 observer.disconnect();
             }
         });
 
-        observer.observe(document, { childList: true, subtree: true });
+        observer.observe(document, {childList: true, subtree: true});
 
 
     })();
@@ -201,14 +192,17 @@ if (GM_getValue("gettingChangelogs", 0) > 0 && window.location.href.includes("st
 
         GM_setValue("depotID", depotID);
         GM_deleteValue("changelogObject");
-        GM_setValue("gettingChangelogs", intermediaryBuilds.length);
         // Get changelog for each build
         for (let i = 0; i < intermediaryBuilds.length; i++) {
             console.log(typeof intermediaryBuilds[i]);
-            const changelog = getChangelog(depotID, intermediaryBuilds[i]);
-            // if (i === intermediaryBuilds.length - 1) {
-            //     GM_setValue("gettingDiff", false);
-            // }
+            const repeat = setInterval(() => {
+                console.log(GM_getValue("gettingChangelogs", false));
+                if (!GM_getValue("gettingChangelogs", false)) {
+                    clearInterval(repeat);
+                    GM_setValue("gettingChangelogs", true);
+                    const changelog = getChangelog(depotID, intermediaryBuilds[i]);
+                }
+            }, 1000); // Adjust the interval duration as needed
         }
     }
 
@@ -234,13 +228,13 @@ if (GM_getValue("gettingChangelogs", 0) > 0 && window.location.href.includes("st
         console.log(buildID);
         const url = document.querySelector(`a[href*="/patchnotes/${buildID}"]`).href;
         console.log(url);
-        GM_openInTab(url, {
+        const tab = GM_openInTab(url, {
             active: false
         });
+        tab.onclose = () => {
+            GM_setValue("gettingChangelogs", false)
+            console.log(GM_getValue("gettingChangelogs", false));
+        }
     }
 }
-
-
-
-
 
