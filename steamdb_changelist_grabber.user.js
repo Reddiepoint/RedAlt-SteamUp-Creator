@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.2.3
+// @version     0.2.4
 // @author      Reddiepoint
 // @description
 // ==/UserScript==
@@ -58,18 +58,14 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
                 for (let i = 0; i < versions.length; i++) {
                     const version = versions[i];
                     if (version.className === "diff-added") {
-                        console.log("added");
                         const filePath = version.querySelector("ins").textContent;
                         if (!existingChangelogObject.added.includes(filePath)) {
-                            console.log("not included")
                             if (existingChangelogObject.removed.includes(filePath)) {
                                 existingChangelogObject.removed = existingChangelogObject.removed.filter(item => item.toString() !== filePath);
                             }
                             existingChangelogObject.added.push(filePath);
-                            console.log("added now")
                         }
                     } else if (version.className === "diff-removed") {
-                        console.log("removed");
                         const filePath = version.querySelector("del").textContent;
                         if (!existingChangelogObject.removed.includes(filePath)) {
                             if (existingChangelogObject.added.includes(filePath)) {
@@ -82,7 +78,6 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
                         }
 
                     } else if (version.className === "diff-modified") {
-                        console.log("modified");
                         const filePath = version.querySelector("i").textContent;
                         if (!existingChangelogObject.added.includes(filePath) && !existingChangelogObject.modified.includes(filePath)) {
                             if (existingChangelogObject.removed.includes(filePath)) {
@@ -180,7 +175,7 @@ if (GM_getValue("readyToDownload", false)) {
     document.head.appendChild(styleSheet);
 
     const buildIDs = getBuildIDs();
-    // Create modal HTML
+    // Create modal content HTML
     const modalHTML = `
     <div id="changelogModal" class="modal" style="display: none;">
         <div class="modal-content">
@@ -189,19 +184,18 @@ if (GM_getValue("readyToDownload", false)) {
                 <label for="depotID">Depot:</label>
                 <input type="text" id="depotID" name="depotID">
                 <br>
-                <label for="buildID1">Build ID 1:</label>
+                <label for="buildID1">Get changes from: </label>
                 <input list="buildID1List" id="buildID1" name="buildID1">
                 <datalist id="buildID1List">
                     ${buildIDs.map((id) => `<option value="${id}"></option>`).join("")}
                 </datalist>
-                <br>
-                <label for="buildID2">Build ID 2:</label>
+                <label for="buildID2"> to </label>
                 <input list="buildID2List" id="buildID2" name="buildID2">
                 <datalist id="buildID2List">
                     ${buildIDs.map((id) => `<option value="${id}"></option>`).join("")}
                 </datalist>
                 <br>
-                <button type="button" id="getDiffBtn">Get diff</button>
+                <button type="button" id="getChangesBtn">Get changes</button>
             </form>
         </div>
     </div>`;
@@ -241,13 +235,11 @@ if (GM_getValue("readyToDownload", false)) {
         }
     };
 
-    document.getElementById("getDiffBtn").addEventListener("click", getDiff);
-
-    console.log(JSON.parse(GM_getValue("changesObject", '{ "added": [], "removed": [], "modified": [] }')));
+    document.getElementById("getChangesBtn").addEventListener("click", getChanges);
 })();
 
 
-function getDiff() {
+function getChanges() {
     let buildID1 = document.getElementById("buildID1").value;
     let buildID2 = document.getElementById("buildID2").value;
 
@@ -264,16 +256,13 @@ function getDiff() {
     const builds = getBuildIDs().reverse();
     // Get slice of builds from buildID1 + 1 to buildID2
     let intermediaryBuilds = builds.slice(builds.indexOf(buildID1) + 1, builds.indexOf(buildID2) + 1);
-    console.log(intermediaryBuilds);
 
     GM_setValue("depotID", depotID);
     GM_setValue("readyToDownload", false);
     GM_setValue("changesObject", '{ "added": [], "removed": [], "modified": [] }');
     // Get changelog for each build
     for (let i = 0; i < intermediaryBuilds.length; i++) {
-        console.log(typeof intermediaryBuilds[i]);
         const repeat = setInterval(() => {
-            console.log(GM_getValue("gettingChangelogs", false));
             if (!GM_getValue("gettingChangelogs", false)) {
                 clearInterval(repeat);
                 GM_setValue("gettingChangelogs", true);
