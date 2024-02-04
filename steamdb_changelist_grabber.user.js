@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.2.6
+// @version     0.2.7
 // @author      Reddiepoint
 // @description
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/steamdb_changelist_grabber.user.js
@@ -298,10 +298,6 @@ function getBuildIDs() {
     });
     return builds;
 }
-
-const url = document.querySelector("#js-builds > tr:nth-child(1) > td:nth-child(4) > a").href;
-console.log(url);
-
 
 function getChangelog(depotID, buildID) {
     console.log(depotID);
