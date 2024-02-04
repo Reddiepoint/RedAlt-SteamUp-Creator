@@ -6,48 +6,96 @@
 // @run-at      document-idle
 // @grant       GM_setValue
 // @grant       GM_getValue
-// @grant       GM_deleteValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.1
+// @version     0.2.0
 // @author      Reddiepoint
 // @description
 // ==/UserScript==
 
 
-if (GM_getValue("gettingChangelogs", true) && window.location.href.includes("steamdb.info/patchnotes/")) {
-    (async function () {
+// Create the button
+const button = document.createElement("button");
+button.textContent = "Reset"; // Set the text content of the button
+button.id = "myButton"; // Set the ID of the button
+
+// Add event listener to the button
+button.addEventListener("click", myFunction);
+
+// Add the button as the first child of the body
+document.body.insertBefore(button, document.body.lastElementChild);
+
+// Function to run when the button is clicked
+function myFunction() {
+    GM_setValue("changesObject", '{ "added": [], "removed": [], "modified": [] }');
+    GM_setValue("readyToDownload", false);
+    GM_setValue("depotID", null);
+    GM_setValue("gettingChangelogs", false);
+    // Your code here
+    console.log("Reset!");
+    // Add your custom functionality here
+}
+
+console.log(GM_getValue("changesObject"));
+console.log(GM_getValue("depotID"));
+if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("steamdb.info/patchnotes/")) {
+    (function () {
         const depotID = GM_getValue("depotID", null);
         const depots = document.querySelector(`a[href*="/depot/${depotID}/"]`);
         if (!depots) {
             window.close();
         }
 
-        const observer = new MutationObserver(async (mutations, observer) => {
+        const observer = new MutationObserver((mutations, observer) => {
             const parentSibling = depots.parentElement.nextElementSibling;
             const li = parentSibling.querySelector('li.versions');
             if (parentSibling && li) {
                 const versions = parentSibling.children;
                 // Retrieve the existing changelogObject
-                const existingChangelogObject = GM_getValue("changelogObject", {
-                    added: [],
-                    removed: [],
-                    modified: []
-                });
+                const existingChangelogObject = JSON.parse(GM_getValue("changesObject", '{ "added": [], "removed": [], "modified": [] }'));
 
                 for (let i = 0; i < versions.length; i++) {
                     const version = versions[i];
                     if (version.className === "diff-added") {
-                        existingChangelogObject.added.push(version.querySelector("ins").textContent);
+                        console.log("added");
+                        const filePath = version.querySelector("ins").textContent;
+                        if (!existingChangelogObject.added.includes(filePath)) {
+                            console.log("not included")
+                            if (existingChangelogObject.removed.includes(filePath)) {
+                                existingChangelogObject.removed = existingChangelogObject.removed.filter(item => item.toString() !== filePath);
+                            }
+                            existingChangelogObject.added.push(filePath);
+                            console.log("added now")
+                        }
                     } else if (version.className === "diff-removed") {
-                        existingChangelogObject.removed.push(version.querySelector("del").textContent);
+                        console.log("removed");
+                        const filePath = version.querySelector("del").textContent;
+                        if (!existingChangelogObject.removed.includes(filePath)) {
+                            if (existingChangelogObject.added.includes(filePath)) {
+                                existingChangelogObject.added = existingChangelogObject.added.filter(item => item.toString() !== filePath);
+                            }
+                            if (existingChangelogObject.modified.includes(filePath)) {
+                                existingChangelogObject.modified = existingChangelogObject.modified.filter(item => item.toString() !== filePath);
+                            }
+                            existingChangelogObject.removed.push(filePath);
+                        }
+
                     } else if (version.className === "diff-modified") {
-                        existingChangelogObject.modified.push(version.querySelector("i").textContent);
+                        console.log("modified");
+                        const filePath = version.querySelector("i").textContent;
+                        if (!existingChangelogObject.added.includes(filePath) && !existingChangelogObject.modified.includes(filePath)) {
+                            if (existingChangelogObject.removed.includes(filePath)) {
+                                existingChangelogObject.removed = existingChangelogObject.removed.filter(item => item !== filePath);
+                            }
+                            existingChangelogObject.modified.push(filePath);
+                        }
                     }
                 }
 
-                GM_setValue("changelogObject", existingChangelogObject);
-                window.close();
+                GM_setValue("changesObject", JSON.stringify(existingChangelogObject));
+
+                console.log(GM_getValue("changesObject"));
+                // window.close();
                 observer.disconnect();
             }
         });
@@ -57,29 +105,22 @@ if (GM_getValue("gettingChangelogs", true) && window.location.href.includes("ste
 }
 
 if (GM_getValue("readyToDownload", false)) {
-    function download(filename, text) {
-        const element = document.createElement('a');
-        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(text)));
-        element.setAttribute('download', filename);
+    const filename = "test.txt";
+    const text = GM_getValue("changesObject");
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', filename);
 
-        element.style.display = 'none';
-        document.body.appendChild(element);
+    element.style.display = 'none';
+    document.body.appendChild(element);
 
-        element.click();
+    element.click();
 
-        document.body.removeChild(element);
-    }
+    document.body.removeChild(element);
 
-    download("test.txt", GM_getValue("changelogObject", {
-        added: [],
-        removed: [],
-        modified: []
-    }));
+    GM_setValue("readyToDownload", false)
 }
 
-if (GM_getValue("gettingChangelogs", true)) {
-    return;
-}
 (function () {
     // Add modal CSS
     const css = `
@@ -195,11 +236,7 @@ if (GM_getValue("gettingChangelogs", true)) {
 
     document.getElementById('getDiffBtn').addEventListener('click', getDiff);
 
-    console.log(GM_getValue("changelogObject", {
-        added: [],
-        removed: [],
-        modified: []
-    }));
+    console.log(JSON.parse(GM_getValue("changesObject", '{ "added": [], "removed": [], "modified": [] }')));
 })();
 
 
@@ -214,7 +251,7 @@ function getDiff() {
 
     GM_setValue("depotID", depotID);
     GM_setValue("readyToDownload", false);
-    GM_deleteValue("changelogObject");
+    GM_setValue("changesObject", '{ "added": [], "removed": [], "modified": [] }');
     // Get changelog for each build
     for (let i = 0; i < intermediaryBuilds.length; i++) {
         console.log(typeof intermediaryBuilds[i]);
@@ -230,7 +267,8 @@ function getDiff() {
     const repeat = setInterval(() => {
         if (!GM_getValue("gettingChangelogs", false)) {
             GM_setValue("readyToDownload", true);
-            console.log("Already getting changelogs");
+            clearInterval(repeat);
+            console.log("Downloading changes");
             location.reload();
         }
     }, 1000); // Adjust the interval duration as needed
@@ -255,7 +293,7 @@ const url = document.querySelector("#js-builds > tr:nth-child(1) > td:nth-child(
 console.log(url);
 
 
-async function getChangelog(depotID, buildID) {
+function getChangelog(depotID, buildID) {
     console.log(depotID);
     console.log(buildID);
     const url = document.querySelector(`a[href*="/patchnotes/${buildID}"]`).href;
@@ -265,6 +303,6 @@ async function getChangelog(depotID, buildID) {
     });
     tab.onclose = () => {
         GM_setValue("gettingChangelogs", false)
-        console.log(GM_getValue("gettingChangelogs", false));
     }
 }
+
