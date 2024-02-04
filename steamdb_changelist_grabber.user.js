@@ -15,7 +15,7 @@
 // ==/UserScript==
 
 
-if (GM_getValue("gettingChangelogs", true) > 0 && window.location.href.includes("steamdb.info/patchnotes/")) {
+if (GM_getValue("gettingChangelogs", true) && window.location.href.includes("steamdb.info/patchnotes/")) {
     (async function () {
         const depotID = GM_getValue("depotID", null);
         const depots = document.querySelector(`a[href*="/depot/${depotID}/"]`);
@@ -29,16 +29,11 @@ if (GM_getValue("gettingChangelogs", true) > 0 && window.location.href.includes(
             if (parentSibling && li) {
                 const versions = parentSibling.children;
                 // Retrieve the existing changelogObject
-                const existingChangelogObject = JSON.parse(GM_getValue("changelogObject", "{}"));
-                if (!existingChangelogObject.added) {
-                    existingChangelogObject.added = [];
-                }
-                if (!existingChangelogObject.removed) {
-                    existingChangelogObject.removed = [];
-                }
-                if (!existingChangelogObject.modified) {
-                    existingChangelogObject.modified = [];
-                }
+                const existingChangelogObject = GM_getValue("changelogObject", {
+                    added: [],
+                    removed: [],
+                    modified: []
+                });
 
                 for (let i = 0; i < versions.length; i++) {
                     const version = versions[i];
@@ -51,20 +46,43 @@ if (GM_getValue("gettingChangelogs", true) > 0 && window.location.href.includes(
                     }
                 }
 
-                GM_setValue("changelogObject", JSON.stringify(existingChangelogObject));
+                GM_setValue("changelogObject", existingChangelogObject);
                 window.close();
                 observer.disconnect();
             }
         });
 
         observer.observe(document, {childList: true, subtree: true});
-
-
     })();
-} else {
-    (function () {
-        // Add modal CSS
-        const css = `
+}
+
+if (GM_getValue("readyToDownload", false)) {
+    function download(filename, text) {
+        const element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(text)));
+        element.setAttribute('download', filename);
+
+        element.style.display = 'none';
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+    }
+
+    download("test.txt", GM_getValue("changelogObject", {
+        added: [],
+        removed: [],
+        modified: []
+    }));
+}
+
+if (GM_getValue("gettingChangelogs", true)) {
+    return;
+}
+(function () {
+    // Add modal CSS
+    const css = `
     .modal {
         display: none;
         position: fixed;
@@ -111,13 +129,13 @@ if (GM_getValue("gettingChangelogs", true) > 0 && window.location.href.includes(
     }
     `;
 
-        const styleSheet = document.createElement("style");
-        styleSheet.innerText = css;
-        document.head.appendChild(styleSheet);
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = css;
+    document.head.appendChild(styleSheet);
 
-        const buildIDs = getBuildIDs();
-        // Create modal HTML
-        const modalHTML = `
+    const buildIDs = getBuildIDs();
+    // Create modal HTML
+    const modalHTML = `
     <div id="myModal" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -142,99 +160,111 @@ if (GM_getValue("gettingChangelogs", true) > 0 && window.location.href.includes(
         </div>
     </div>`;
 
-        // Append modal to body
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    // Append modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-        // Create the button
-        const button = document.createElement("button");
-        button.textContent = "Open Modal";
-        button.id = "myBtn";
-        button.style.marginTop = "10px"; // Add some spacing
+    // Create the button
+    const button = document.createElement("button");
+    button.textContent = "Open Modal";
+    button.id = "myBtn";
+    button.style.marginTop = "10px"; // Add some spacing
 
-        // Get the reference element and insert the button
-        const refElement = document.querySelector("#main > div.container > div:nth-child(5) > a");
-        if (refElement) {
-            refElement.parentNode.insertBefore(button, refElement.nextSibling);
-        }
+    // Get the reference element and insert the button
+    const refElement = document.querySelector("#main > div.container > div:nth-child(5) > a");
+    if (refElement) {
+        refElement.parentNode.insertBefore(button, refElement.nextSibling);
+    }
 
-        // Modal interaction script
-        const modal = document.getElementById('myModal');
-        const span = document.getElementsByClassName('close')[0];
+    // Modal interaction script
+    const modal = document.getElementById('myModal');
+    const span = document.getElementsByClassName('close')[0];
 
-        button.onclick = function () {
-            modal.style.display = 'block';
-        };
+    button.onclick = function () {
+        modal.style.display = 'block';
+    };
 
-        span.onclick = function () {
+    span.onclick = function () {
+        modal.style.display = 'none';
+    };
+
+    window.onclick = function (event) {
+        if (event.target === modal) {
             modal.style.display = 'none';
-        };
-
-        window.onclick = function (event) {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        };
-
-        document.getElementById('getDiffBtn').addEventListener('click', getDiff);
-
-        console.log(GM_getValue("changelogObject", "{}"));
-    })();
-
-
-    function getDiff() {
-        const buildID1 = document.getElementById("buildID1").value;
-        const buildID2 = document.getElementById("buildID2").value;
-        const depotID = document.getElementById("depotID").value;
-        const builds = getBuildIDs().reverse();
-        // Get slice of builds from buildID1 + 1 to buildID2
-        let intermediaryBuilds = builds.slice(builds.indexOf(buildID1) + 1, builds.indexOf(buildID2) + 1);
-        console.log(intermediaryBuilds);
-
-        GM_setValue("depotID", depotID);
-        GM_deleteValue("changelogObject");
-        // Get changelog for each build
-        for (let i = 0; i < intermediaryBuilds.length; i++) {
-            console.log(typeof intermediaryBuilds[i]);
-            const repeat = setInterval(() => {
-                console.log(GM_getValue("gettingChangelogs", false));
-                if (!GM_getValue("gettingChangelogs", false)) {
-                    clearInterval(repeat);
-                    GM_setValue("gettingChangelogs", true);
-                    const changelog = getChangelog(depotID, intermediaryBuilds[i]);
-                }
-            }, 1000); // Adjust the interval duration as needed
         }
-    }
+    };
 
-    function getBuildIDs() {
-        const builds = [];
-        const jsBuilds = document.querySelector("#js-builds");
-        const trElements = jsBuilds.querySelectorAll("tr");
-        trElements.forEach((tr) => {
-            const version = tr.querySelector("td:last-child");
-            if (version) {
-                builds.push(version.textContent);
-            }
-        });
-        return builds;
-    }
+    document.getElementById('getDiffBtn').addEventListener('click', getDiff);
 
-    const url = document.querySelector("#js-builds > tr:nth-child(1) > td:nth-child(4) > a").href;
-    console.log(url);
+    console.log(GM_getValue("changelogObject", {
+        added: [],
+        removed: [],
+        modified: []
+    }));
+})();
 
 
-    async function getChangelog(depotID, buildID) {
-        console.log(depotID);
-        console.log(buildID);
-        const url = document.querySelector(`a[href*="/patchnotes/${buildID}"]`).href;
-        console.log(url);
-        const tab = GM_openInTab(url, {
-            active: false
-        });
-        tab.onclose = () => {
-            GM_setValue("gettingChangelogs", false)
+function getDiff() {
+    const buildID1 = document.getElementById("buildID1").value;
+    const buildID2 = document.getElementById("buildID2").value;
+    const depotID = document.getElementById("depotID").value;
+    const builds = getBuildIDs().reverse();
+    // Get slice of builds from buildID1 + 1 to buildID2
+    let intermediaryBuilds = builds.slice(builds.indexOf(buildID1) + 1, builds.indexOf(buildID2) + 1);
+    console.log(intermediaryBuilds);
+
+    GM_setValue("depotID", depotID);
+    GM_setValue("readyToDownload", false);
+    GM_deleteValue("changelogObject");
+    // Get changelog for each build
+    for (let i = 0; i < intermediaryBuilds.length; i++) {
+        console.log(typeof intermediaryBuilds[i]);
+        const repeat = setInterval(() => {
             console.log(GM_getValue("gettingChangelogs", false));
-        }
+            if (!GM_getValue("gettingChangelogs", false)) {
+                clearInterval(repeat);
+                GM_setValue("gettingChangelogs", true);
+                getChangelog(depotID, intermediaryBuilds[i]);
+            }
+        }, 1000); // Adjust the interval duration as needed
     }
+    const repeat = setInterval(() => {
+        if (!GM_getValue("gettingChangelogs", false)) {
+            GM_setValue("readyToDownload", true);
+            console.log("Already getting changelogs");
+            location.reload();
+        }
+    }, 1000); // Adjust the interval duration as needed
+
+
 }
 
+function getBuildIDs() {
+    const builds = [];
+    const jsBuilds = document.querySelector("#js-builds");
+    const trElements = jsBuilds.querySelectorAll("tr");
+    trElements.forEach((tr) => {
+        const version = tr.querySelector("td:last-child");
+        if (version) {
+            builds.push(version.textContent);
+        }
+    });
+    return builds;
+}
+
+const url = document.querySelector("#js-builds > tr:nth-child(1) > td:nth-child(4) > a").href;
+console.log(url);
+
+
+async function getChangelog(depotID, buildID) {
+    console.log(depotID);
+    console.log(buildID);
+    const url = document.querySelector(`a[href*="/patchnotes/${buildID}"]`).href;
+    console.log(url);
+    const tab = GM_openInTab(url, {
+        active: true
+    });
+    tab.onclose = () => {
+        GM_setValue("gettingChangelogs", false)
+        console.log(GM_getValue("gettingChangelogs", false));
+    }
+}
