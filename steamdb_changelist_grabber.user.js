@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.2.5
+// @version     0.2.6
 // @author      Reddiepoint
 // @description
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/steamdb_changelist_grabber.user.js
@@ -242,6 +242,8 @@ if (GM_getValue("readyToDownload", false)) {
 
 
 function getChanges() {
+    const getChangesBtn = document.querySelector("#getChangesBtn");
+    getChangesBtn.insertAdjacentHTML('afterend', '<p>Getting changes... This page will refresh automatically to download the changes.</p>');
     let buildID1 = document.getElementById("buildID1").value;
     let buildID2 = document.getElementById("buildID2").value;
 
