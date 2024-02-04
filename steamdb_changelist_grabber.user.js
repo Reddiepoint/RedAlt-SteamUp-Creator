@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.2.0
+// @version     0.2.1
 // @author      Reddiepoint
 // @description
 // ==/UserScript==
@@ -95,7 +95,7 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
                 GM_setValue("changesObject", JSON.stringify(existingChangelogObject));
 
                 console.log(GM_getValue("changesObject"));
-                // window.close();
+                window.close();
                 observer.disconnect();
             }
         });
