@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.2.1
+// @version     0.2.2
 // @author      Reddiepoint
 // @description
 // ==/UserScript==
@@ -105,11 +105,10 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
 }
 
 if (GM_getValue("readyToDownload", false)) {
-    const filename = "test.txt";
+    const filename = GM_getValue("depotID") + "_changes.txt";
     const changes = JSON.parse(GM_getValue("changesObject"));
 
-    const consolidatedChanges = changes.added.concat(changes.modified);
-    changes.download_files = consolidatedChanges;
+    changes.download_files = changes.added.concat(changes.modified);
 
     const element = document.createElement("a");
     element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(changes)));
