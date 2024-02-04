@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.2.2
+// @version     0.2.3
 // @author      Reddiepoint
 // @description
 // ==/UserScript==
@@ -41,13 +41,14 @@ console.log(GM_getValue("depotID"));
 if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("steamdb.info/patchnotes/")) {
     (function () {
         const depotID = GM_getValue("depotID", null);
-        const depots = document.querySelector(`a[href*="/depot/${depotID}/"]`);
-        if (!depots) {
+        const depotElement = document.querySelector(`a[href*="/depot/${depotID}/"]`);
+        if (!depotElement) {
             window.close();
         }
-
+        const manifestID = depotElement.href.split("M:")[1];
+        GM_setValue("manifestID", manifestID);
         const observer = new MutationObserver(async (mutations, observer) => {
-            const parentSibling = depots.parentElement.nextElementSibling;
+            const parentSibling = depotElement.parentElement.nextElementSibling;
             const li = parentSibling.querySelector("li.versions");
             if (parentSibling && li) {
                 const versions = parentSibling.children;
@@ -93,8 +94,6 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
                 }
 
                 GM_setValue("changesObject", JSON.stringify(existingChangelogObject));
-
-                console.log(GM_getValue("changesObject"));
                 window.close();
                 observer.disconnect();
             }
@@ -108,7 +107,10 @@ if (GM_getValue("readyToDownload", false)) {
     const filename = GM_getValue("depotID") + "_changes.txt";
     const changes = JSON.parse(GM_getValue("changesObject"));
 
-    changes.download_files = changes.added.concat(changes.modified);
+    // changes.download_files = changes.added.concat(changes.modified);
+
+    changes.depot = GM_getValue("depotID");
+    changes.manifest = GM_getValue("manifestID");
 
     const element = document.createElement("a");
     element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(changes)));
@@ -246,8 +248,18 @@ if (GM_getValue("readyToDownload", false)) {
 
 
 function getDiff() {
-    const buildID1 = document.getElementById("buildID1").value;
-    const buildID2 = document.getElementById("buildID2").value;
+    let buildID1 = document.getElementById("buildID1").value;
+    let buildID2 = document.getElementById("buildID2").value;
+
+    if (buildID1 >= buildID2) {
+        // Switch ID1 and ID2
+        document.getElementById("buildID1").value = buildID2;
+        document.getElementById("buildID2").value = buildID1;
+        const temp = buildID1;
+        buildID1 = buildID2;
+        buildID2 = temp;
+
+    }
     const depotID = document.getElementById("depotID").value;
     const builds = getBuildIDs().reverse();
     // Get slice of builds from buildID1 + 1 to buildID2
