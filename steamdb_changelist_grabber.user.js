@@ -127,7 +127,7 @@ if (GM_getValue("readyToDownload", false)) {
     .modal {
         display: none;
         position: fixed;
-        z-index: 1;
+        z-index: 2;
         left: 0;
         top: 0;
         width: 100%;
@@ -204,17 +204,7 @@ if (GM_getValue("readyToDownload", false)) {
     // Append modal to body
     document.body.insertAdjacentHTML("beforeend", modalHTML);
 
-    /*// Create the button
-    const button = document.createElement("button");
-    button.textContent = "Open Modal";
-    button.id = "myBtn";
-    button.style.marginTop = "10px"; // Add some spacing
-
-    // Get the reference element and insert the button
-    const refElement = document.querySelector("#main > div.container > table");
-    if (refElement) {
-        refElement.parentNode.append(button, refElement);
-    }*/
+    // Add button
     const refElement = document.querySelector("#main > div.container > div:nth-child(5) > a");
     const newDiv = document.createElement("div");
     const button = document.createElement("button");
@@ -228,7 +218,7 @@ if (GM_getValue("readyToDownload", false)) {
         newDiv.appendChild(button);
     }
 
-    // Modal interaction script
+    // Modal interaction
     const modal = document.getElementById("changelogModal");
     const span = document.getElementsByClassName("close")[0];
 
