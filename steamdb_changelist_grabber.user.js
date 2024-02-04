@@ -46,9 +46,9 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
             window.close();
         }
 
-        const observer = new MutationObserver((mutations, observer) => {
+        const observer = new MutationObserver(async (mutations, observer) => {
             const parentSibling = depots.parentElement.nextElementSibling;
-            const li = parentSibling.querySelector('li.versions');
+            const li = parentSibling.querySelector("li.versions");
             if (parentSibling && li) {
                 const versions = parentSibling.children;
                 // Retrieve the existing changelogObject
@@ -107,11 +107,11 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
 if (GM_getValue("readyToDownload", false)) {
     const filename = "test.txt";
     const text = GM_getValue("changesObject");
-    const element = document.createElement('a');
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-    element.setAttribute('download', filename);
+    const element = document.createElement("a");
+    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(text));
+    element.setAttribute("download", filename);
 
-    element.style.display = 'none';
+    element.style.display = "none";
     document.body.appendChild(element);
 
     element.click();
@@ -138,15 +138,15 @@ if (GM_getValue("readyToDownload", false)) {
     
     .modal-content {
         background-color: #333; /* Dark background for the modal */
-        color: #ddd; /* Light text color for readability */
+        color: #ddd; /* Light text colour for readability */
         margin: 15% auto;
         padding: 20px;
-        border: 1px solid #444; /* Slightly lighter border color */
+        border: 1px solid #444; /* Slightly lighter border colour */
         width: 80%;
     }
     
     .close {
-        color: #aaa; /* Lighter color for the close button */
+        color: #aaa; /* Lighter colour for the close button */
         float: right;
         font-size: 28px;
         font-weight: bold;
@@ -154,7 +154,7 @@ if (GM_getValue("readyToDownload", false)) {
     
     .close:hover,
     .close:focus {
-        color: white; /* Even lighter color on hover/focus for contrast */
+        color: white; /* Even lighter colour on hover/focus for contrast */
         text-decoration: none;
         cursor: pointer;
     }
@@ -177,7 +177,7 @@ if (GM_getValue("readyToDownload", false)) {
     const buildIDs = getBuildIDs();
     // Create modal HTML
     const modalHTML = `
-    <div id="myModal" class="modal" style="display: none;">
+    <div id="changelogModal" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close">&times;</span>
             <form id="buildForm">
@@ -187,13 +187,13 @@ if (GM_getValue("readyToDownload", false)) {
                 <label for="buildID1">Build ID 1:</label>
                 <input list="buildID1List" id="buildID1" name="buildID1">
                 <datalist id="buildID1List">
-                    ${buildIDs.map((id) => `<option value="${id}"></option>`).join('')}
+                    ${buildIDs.map((id) => `<option value="${id}"></option>`).join("")}
                 </datalist>
                 <br>
                 <label for="buildID2">Build ID 2:</label>
                 <input list="buildID2List" id="buildID2" name="buildID2">
                 <datalist id="buildID2List">
-                    ${buildIDs.map((id) => `<option value="${id}"></option>`).join('')}
+                    ${buildIDs.map((id) => `<option value="${id}"></option>`).join("")}
                 </datalist>
                 <br>
                 <button type="button" id="getDiffBtn">Get diff</button>
@@ -202,39 +202,51 @@ if (GM_getValue("readyToDownload", false)) {
     </div>`;
 
     // Append modal to body
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
 
-    // Create the button
+    /*// Create the button
     const button = document.createElement("button");
     button.textContent = "Open Modal";
     button.id = "myBtn";
     button.style.marginTop = "10px"; // Add some spacing
 
     // Get the reference element and insert the button
-    const refElement = document.querySelector("#main > div.container > div:nth-child(5) > a");
+    const refElement = document.querySelector("#main > div.container > table");
     if (refElement) {
-        refElement.parentNode.insertBefore(button, refElement.nextSibling);
+        refElement.parentNode.append(button, refElement);
+    }*/
+    const refElement = document.querySelector("#main > div.container > div:nth-child(5) > a");
+    const newDiv = document.createElement("div");
+    const button = document.createElement("button");
+    button.textContent = "Get changes";
+    button.id = "modalButton";
+    newDiv.style.marginTop = "10px"; // Add some spacing
+    if (refElement) {
+        refElement.parentNode.insertBefore(newDiv, refElement.nextSibling);
+        newDiv.appendChild(refElement);
+        newDiv.appendChild(document.createElement("br"));
+        newDiv.appendChild(button);
     }
 
     // Modal interaction script
-    const modal = document.getElementById('myModal');
-    const span = document.getElementsByClassName('close')[0];
+    const modal = document.getElementById("changelogModal");
+    const span = document.getElementsByClassName("close")[0];
 
     button.onclick = function () {
-        modal.style.display = 'block';
+        modal.style.display = "block";
     };
 
     span.onclick = function () {
-        modal.style.display = 'none';
+        modal.style.display = "none";
     };
 
     window.onclick = function (event) {
         if (event.target === modal) {
-            modal.style.display = 'none';
+            modal.style.display = "none";
         }
     };
 
-    document.getElementById('getDiffBtn').addEventListener('click', getDiff);
+    document.getElementById("getDiffBtn").addEventListener("click", getDiff);
 
     console.log(JSON.parse(GM_getValue("changesObject", '{ "added": [], "removed": [], "modified": [] }')));
 })();
