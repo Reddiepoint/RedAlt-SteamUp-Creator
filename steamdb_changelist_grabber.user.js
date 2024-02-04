@@ -106,9 +106,13 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
 
 if (GM_getValue("readyToDownload", false)) {
     const filename = "test.txt";
-    const text = GM_getValue("changesObject");
+    const changes = JSON.parse(GM_getValue("changesObject"));
+
+    const consolidatedChanges = changes.added.concat(changes.modified);
+    changes.download_files = consolidatedChanges;
+
     const element = document.createElement("a");
-    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(text));
+    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(changes)));
     element.setAttribute("download", filename);
 
     element.style.display = "none";
