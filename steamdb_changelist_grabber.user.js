@@ -309,7 +309,7 @@ function getChangelog(depotID, buildID) {
     const url = document.querySelector(`a[href*="/patchnotes/${buildID}"]`).href;
     console.log(url);
     const tab = GM_openInTab(url, {
-        active: false
+        active: true
     });
     tab.onclose = () => {
         GM_setValue("gettingChangelogs", false)
