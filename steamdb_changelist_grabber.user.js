@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.3.0
+// @version     0.3.1
 // @author      Reddiepoint
 // @description
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/steamdb_changelist_grabber.user.js
@@ -101,7 +101,7 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
 }
 
 if (GM_getValue("readyToDownload", false)) {
-    const filename = GM_getValue("depotID") + "_changes.txt";
+    const filename = GM_getValue("depotID") + "_changes.json";
     const changes = JSON.parse(GM_getValue("changesObject"));
     changes.manifest = GM_getValue("manifestID");
 
