@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.2.7
+// @version     0.3.0
 // @author      Reddiepoint
 // @description
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/steamdb_changelist_grabber.user.js
@@ -39,7 +39,7 @@ function myFunction() {
 }
 
 console.log(GM_getValue("changesObject"));
-console.log(GM_getValue("depotID"));
+
 if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("steamdb.info/patchnotes/")) {
     (function () {
         const depotID = GM_getValue("depotID", null);
@@ -103,10 +103,6 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
 if (GM_getValue("readyToDownload", false)) {
     const filename = GM_getValue("depotID") + "_changes.txt";
     const changes = JSON.parse(GM_getValue("changesObject"));
-
-    // changes.download_files = changes.added.concat(changes.modified);
-
-    changes.depot = GM_getValue("depotID");
     changes.manifest = GM_getValue("manifestID");
 
     const element = document.createElement("a");
@@ -263,7 +259,15 @@ function getChanges() {
 
     GM_setValue("depotID", depotID);
     GM_setValue("readyToDownload", false);
-    GM_setValue("changesObject", '{ "added": [], "removed": [], "modified": [] }');
+    const changesObject = {
+        depot: depotID,
+        initial_build: buildID1,
+        final_build: buildID2,
+        added: [],
+        removed: [],
+        modified: []
+    }
+    GM_setValue("changesObject", JSON.stringify(changesObject));
     // Get changelog for each build
     for (let i = 0; i < intermediaryBuilds.length; i++) {
         const repeat = setInterval(() => {
