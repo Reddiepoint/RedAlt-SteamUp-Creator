@@ -18,6 +18,7 @@ impl CreateUpdateUI {
         create_update_ui.display_file_dialog(ctx, ui);
         // Parse and display the changes
         create_update_ui.display_changes(ui);
+        // 
     }
 
     fn display_file_dialog(&mut self, ctx: &Context, ui: &mut Ui) {

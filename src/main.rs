@@ -2,7 +2,7 @@ mod modules;
 
 use eframe::egui::ViewportBuilder;
 
-use crate::modules::main::RedAltSteamUpdateCreator;
+use crate::modules::app::RedAltSteamUpdateCreator;
 
 fn main() {
     let options = eframe::NativeOptions {
