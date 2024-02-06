@@ -4,7 +4,10 @@ use std::fmt::format;
 use std::path::{Path, PathBuf};
 use eframe::egui::{Context, ScrollArea, TextEdit, Ui};
 use egui_file::FileDialog;
+use crate::modules::app::{RedAltSteamUpdateCreator, TabBar};
 use crate::modules::changes::Changes;
+use crate::modules::depot_downloader::{DepotDownloaderSettings, download_changes};
+use crate::modules::settings::SettingsUI;
 
 #[derive(Default)]
 pub struct CreateUpdateUI {
@@ -14,13 +17,13 @@ pub struct CreateUpdateUI {
 }
 
 impl CreateUpdateUI {
-    pub fn display(ctx: &Context, ui: &mut Ui, create_update_ui: &mut CreateUpdateUI) {
+    pub fn display(ctx: &Context, ui: &mut Ui, create_update_ui: &mut CreateUpdateUI, depot_downloader_settings: &DepotDownloaderSettings, tab_bar: &mut TabBar) {
         // Choose the JSON file
         create_update_ui.display_file_dialog(ctx, ui);
         // Parse and display the changes
         create_update_ui.display_changes(ui);
-        if create_update_ui.changes_json_file.is_some() {
-            // create_update_ui
+        if !create_update_ui.changes.depot.is_empty() {
+            create_update_ui.display_download_stuff(ui, depot_downloader_settings, tab_bar);
         }
     }
 
@@ -60,7 +63,9 @@ impl CreateUpdateUI {
                 self.changes = serde_json::from_str::<Changes>(&file)
                     .unwrap_or_else(|error| { Changes::new_error(error.to_string()) });
                 // Display changes
-                let information = format!("Creating update for {} ({}) from Build {} to Build {}", self.changes.depot, self.changes.manifest, self.changes.initial_build, changes.final_build);
+                let information = format!("Creating update for {} ({}) from Build {} to Build {}",
+                                          self.changes.depot, self.changes.manifest,
+                                          self.changes.initial_build, self.changes.final_build);
                 ui.label(information);
                 let lengths = [self.changes.added.len(), self.changes.removed.len(), self.changes.modified.len()];
                 let num_columns = lengths.iter().filter(|&&x| x > 0).count();
@@ -93,5 +98,17 @@ impl CreateUpdateUI {
         }
     }
 
-    fn display_download_stuff(&mut self, ui: &mut Ui) {}
+    fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &DepotDownloaderSettings, mut tab_bar: &mut TabBar) {
+        if depot_downloader_settings.remember_credentials {
+            if ui.button("Download changes using last used credentials").clicked() {
+                download_changes(&self.changes, depot_downloader_settings);
+            }
+        } else if depot_downloader_settings.username.is_empty() {
+            if ui.button("Login").clicked() {
+                *tab_bar = TabBar::Settings;
+            }
+        } else if ui.button(format!("Download changes as {}", depot_downloader_settings.username)).clicked() {
+            download_changes(&self.changes, depot_downloader_settings);
+        }
+    }
 }

@@ -1,3 +1,4 @@
+use crate::modules::changes::Changes;
 
 pub struct DepotDownloaderSettings {
     pub username: String,
@@ -13,4 +14,8 @@ impl Default for DepotDownloaderSettings {
             remember_credentials: true,
         }
     }
+}
+
+pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings) {
+    todo!()
 }

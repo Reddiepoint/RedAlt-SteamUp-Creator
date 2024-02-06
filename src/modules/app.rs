@@ -14,9 +14,9 @@ pub enum TabBar {
 }
 #[derive(Default)]
 pub struct RedAltSteamUpdateCreator {
-    tab_bar: TabBar,
-    create_update_ui: CreateUpdateUI,
-    settings_ui: SettingsUI,
+    pub tab_bar: TabBar,
+    pub create_update_ui: CreateUpdateUI,
+    pub settings_ui: SettingsUI,
 }
 
 impl App for RedAltSteamUpdateCreator {
@@ -40,7 +40,7 @@ impl RedAltSteamUpdateCreator {
     fn display_central_panel(&mut self, ctx: &Context) {
         CentralPanel::default().show(ctx, |ui| {
             match &self.tab_bar {
-                TabBar::CreateUpdate => CreateUpdateUI::display(ctx, ui, &mut self.create_update_ui),
+                TabBar::CreateUpdate => CreateUpdateUI::display(ctx, ui, &mut self.create_update_ui, &self.settings_ui.depot_downloader_settings, &mut self.tab_bar),
                 TabBar::Settings => SettingsUI::display(ctx, ui, &mut self.settings_ui),
             }
         });
