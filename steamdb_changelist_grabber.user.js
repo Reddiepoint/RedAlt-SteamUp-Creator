@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.4.0
+// @version     0.4.1
 // @author      Reddiepoint
 // @description
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/steamdb_changelist_grabber.user.js
@@ -29,7 +29,7 @@ document.body.insertBefore(button, document.body.lastElementChild);
 
 // Function to run when the button is clicked
 function myFunction() {
-    GM_setValue("changesObject", '{ "added": [], "removed": [], "modified": [] }');
+    GM_setValue("changesObject", null);
     GM_setValue("readyToDownload", false);
     GM_setValue("depotID", null);
     GM_setValue("gettingChangelogs", false);
@@ -55,7 +55,7 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
             if (parentSibling && li) {
                 const versions = parentSibling.children;
                 // Retrieve the existing changelogObject
-                const existingChangelogObject = JSON.parse(GM_getValue("changesObject", '{ "added": [], "removed": [], "modified": [] }'));
+                const existingChangelogObject = JSON.parse(GM_getValue("changesObject"));
 
                 for (let i = 0; i < versions.length; i++) {
                     const version = versions[i];
@@ -91,8 +91,8 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
                 }
 
                 GM_setValue("changesObject", JSON.stringify(existingChangelogObject));
-                window.close();
                 observer.disconnect();
+                window.close();
             }
         });
 
