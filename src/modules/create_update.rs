@@ -1,23 +1,49 @@
-use std::cmp;
 use std::ffi::OsStr;
-use std::fmt::format;
 use std::path::{Path, PathBuf};
-use eframe::egui::{Context, ScrollArea, TextEdit, Ui};
+use std::thread;
+use crossbeam_channel::{Receiver, Sender};
+use eframe::egui::{Context, ScrollArea, TextEdit, Ui, Window};
 use egui_file::FileDialog;
-use crate::modules::app::{RedAltSteamUpdateCreator, TabBar};
+use crate::modules::app::TabBar;
 use crate::modules::changes::Changes;
 use crate::modules::depot_downloader::{DepotDownloaderSettings, download_changes};
-use crate::modules::settings::SettingsUI;
+
+
+pub struct CreateUpdateChannels {
+    steam_guard_code_window_opened_sender: Sender<bool>,
+    steam_guard_code_window_opened_receiver: Receiver<bool>,
+    steam_guard_code_sender: Sender<String>,
+    steam_guard_code_receiver: Receiver<String>,
+    depot_downloader_status_sender: Sender<std::io::Result<()>>,
+    depot_downloader_status_receiver: Receiver<std::io::Result<()>>,
+}
+
+impl Default for CreateUpdateChannels {
+    fn default() -> Self {
+        let (steam_guard_code_window_opened_sender, steam_guard_code_window_opened_receiver) = crossbeam_channel::bounded(1);
+        let (steam_guard_code_sender, steam_guard_code_receiver) = crossbeam_channel::bounded(1);
+        let (depot_downloader_status_sender, depot_downloader_status_receiver) = crossbeam_channel::bounded(1);
+        Self {
+            steam_guard_code_window_opened_sender,
+            steam_guard_code_window_opened_receiver,
+            steam_guard_code_sender,
+            steam_guard_code_receiver,
+            depot_downloader_status_sender,
+            depot_downloader_status_receiver
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct CreateUpdateUI {
+    channels: CreateUpdateChannels,
     open_file_dialog: Option<FileDialog>,
     changes_json_file: Option<PathBuf>,
     changes: Changes,
 }
 
 impl CreateUpdateUI {
-    pub fn display(ctx: &Context, ui: &mut Ui, create_update_ui: &mut CreateUpdateUI, depot_downloader_settings: &DepotDownloaderSettings, tab_bar: &mut TabBar) {
+    pub fn display(ctx: &Context, ui: &mut Ui, create_update_ui: &mut CreateUpdateUI, depot_downloader_settings: &mut DepotDownloaderSettings, tab_bar: &mut TabBar) {
         // Choose the JSON file
         create_update_ui.display_file_dialog(ctx, ui);
         // Parse and display the changes
@@ -25,6 +51,8 @@ impl CreateUpdateUI {
         if !create_update_ui.changes.depot.is_empty() {
             create_update_ui.display_download_stuff(ui, depot_downloader_settings, tab_bar);
         }
+
+        create_update_ui.display_steam_guard_code_window(ui, depot_downloader_settings);
     }
 
     fn display_file_dialog(&mut self, ctx: &Context, ui: &mut Ui) {
@@ -101,17 +129,58 @@ impl CreateUpdateUI {
         }
     }
 
-    fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &DepotDownloaderSettings, mut tab_bar: &mut TabBar) {
+    fn display_download_stuff(&mut self, ui: &mut Ui, mut depot_downloader_settings: &mut DepotDownloaderSettings, mut tab_bar: &mut TabBar) {
         if depot_downloader_settings.remember_credentials {
             if ui.button("Download changes using last used credentials").clicked() {
-                download_changes(&self.changes, depot_downloader_settings);
+                let changes = self.changes.clone();
+                let depot_downloader_settings = depot_downloader_settings.clone();
+                let sender = self.channels.steam_guard_code_window_opened_sender.clone();
+                let receiver = self.channels.steam_guard_code_receiver.clone();
+                let status_sender = self.channels.depot_downloader_status_sender.clone();
+                thread::spawn(move || {
+                    let status = download_changes(&changes, &depot_downloader_settings, sender, receiver);
+                    status_sender.send(status).unwrap();
+                });
             }
         } else if depot_downloader_settings.username.is_empty() {
             if ui.button("Login").clicked() {
                 *tab_bar = TabBar::Settings;
             }
         } else if ui.button(format!("Download changes as {}", depot_downloader_settings.username)).clicked() {
-            download_changes(&self.changes, depot_downloader_settings);
+            let changes = self.changes.clone();
+            let depot_downloader_settings = depot_downloader_settings.clone();
+            let sender = self.channels.steam_guard_code_window_opened_sender.clone();
+            let receiver = self.channels.steam_guard_code_receiver.clone();
+            let status_sender = self.channels.depot_downloader_status_sender.clone();
+            thread::spawn(move || {
+                let status = download_changes(&changes, &depot_downloader_settings, sender, receiver);
+                status_sender.send(status).unwrap();
+            });
         }
+
+        if let Ok(status) = self.channels.depot_downloader_status_receiver.try_recv() {
+            match status {
+                Ok(_) => {println!("Success")}
+                Err(error) => {eprintln!("Failed :( {}", error)}
+            }
+        }
+    }
+
+    fn display_steam_guard_code_window(&mut self, ui: &mut Ui, depot_downloader_settings: &mut DepotDownloaderSettings) {
+        if let Ok(open) = self.channels.steam_guard_code_window_opened_receiver.try_recv() {
+            depot_downloader_settings.steam_guard_code_window_opened = open;
+            println!("Received");
+        }
+        Window::new("Steam Guard Code").open(&mut depot_downloader_settings.steam_guard_code_window_opened)
+            .show(ui.ctx(), |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("Enter Steam Guard Code:");
+                    ui.text_edit_singleline(&mut depot_downloader_settings.steam_guard_code);
+                });
+
+                if depot_downloader_settings.steam_guard_code.len() == 5 && ui.button("Submit").clicked() {
+                    self.channels.steam_guard_code_sender.send(depot_downloader_settings.steam_guard_code.clone()).unwrap();
+                }
+            });
     }
 }

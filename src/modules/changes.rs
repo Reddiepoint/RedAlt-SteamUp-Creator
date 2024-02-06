@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use serde::Deserialize;
 
-#[derive(Default, Deserialize)]
+#[derive(Clone, Default, Deserialize)]
 pub struct Changes {
     pub app: String,
     pub depot: String,
