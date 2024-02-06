@@ -3,6 +3,7 @@ use serde::Deserialize;
 
 #[derive(Default, Deserialize)]
 pub struct Changes {
+    pub app: String,
     pub depot: String,
     pub initial_build: String,
     pub final_build: String,
@@ -15,9 +16,10 @@ pub struct Changes {
 impl Changes {
     pub fn new_error(error: String) -> Changes {
         Changes {
-            depot: "Failed to parse JSON".to_string(),
-            initial_build: "".to_string(),
-            final_build: "".to_string(),
+            app: "Failed to parse JSON".to_string(),
+            depot: String::new(),
+            initial_build: String::new(),
+            final_build: String::new(),
             added: vec![],
             removed: vec![],
             modified: vec![],

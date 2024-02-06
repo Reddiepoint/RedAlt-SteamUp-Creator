@@ -63,9 +63,12 @@ impl CreateUpdateUI {
                 self.changes = serde_json::from_str::<Changes>(&file)
                     .unwrap_or_else(|error| { Changes::new_error(error.to_string()) });
                 // Display changes
-                let information = format!("Creating update for {} ({}) from Build {} to Build {}",
-                                          self.changes.depot, self.changes.manifest,
-                                          self.changes.initial_build, self.changes.final_build);
+                let information = match !self.changes.depot.is_empty() {
+                    true => format!("Creating update for {} ({} - {}) from Build {} to Build {}",
+                                    self.changes.app, self.changes.depot, self.changes.manifest,
+                                    self.changes.initial_build, self.changes.final_build),
+                    false => format!("{}", self.changes.app)
+                };
                 ui.label(information);
                 let lengths = [self.changes.added.len(), self.changes.removed.len(), self.changes.modified.len()];
                 let num_columns = lengths.iter().filter(|&&x| x > 0).count();
