@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.3.1
+// @version     0.4.0
 // @author      Reddiepoint
 // @description
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/steamdb_changelist_grabber.user.js
@@ -253,6 +253,7 @@ function getChanges() {
 
     }
     const depotID = document.getElementById("depotID").value;
+    const appID =  window.location.href.match(/(\d+)/)[0];
     const builds = getBuildIDs().reverse();
     // Get slice of builds from buildID1 + 1 to buildID2
     let intermediaryBuilds = builds.slice(builds.indexOf(buildID1) + 1, builds.indexOf(buildID2) + 1);
@@ -260,6 +261,7 @@ function getChanges() {
     GM_setValue("depotID", depotID);
     GM_setValue("readyToDownload", false);
     const changesObject = {
+        app: appID,
         depot: depotID,
         initial_build: buildID1,
         final_build: buildID2,
