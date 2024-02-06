@@ -36,7 +36,9 @@ fn write_changes_to_file(changes: &Changes) -> std::io::Result<()> {
 }
 
 pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
-                        steam_guard_code_window_opened_sender: Sender<bool>, steam_guard_code_receiver: Receiver<String>)
+                        steam_guard_code_window_opened_sender: Sender<bool>,
+                        steam_guard_code_receiver: Receiver<String>,
+                        depot_downloader_stdio_sender: Sender<String>)
                         -> std::io::Result<()> {
     write_changes_to_file(changes)?;
     // Run Depot Downloader
@@ -56,18 +58,21 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         },
         false => command.arg("-username").arg(&settings.username).arg("-password").arg(&settings.password)
     };
-    command.args(["-dir", "./downloads", "-filelist", "files.txt"]);
+    command.args(["-dir",
+        &format!("./downloads/{} ({}) [{} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build),
+        "-filelist", "files.txt"]);
 
     println!("Spawned");
     let mut child = command.spawn().unwrap();
 
     if let Some(mut stdout) = child.stdout.take() {
+        let depot_downloader_stdio_sender = depot_downloader_stdio_sender.clone();
         thread::spawn(move || {
             let mut buffer = [0; 256];
             loop {
                 match stdout.read(&mut buffer) {
                     Ok(n) if n > 0 => {
-                        println!("Output: {}", String::from_utf8_lossy(&buffer[..n]));
+                        depot_downloader_stdio_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
                     }
                     _ => break,
                 }
@@ -76,12 +81,14 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
     }
 
     if let Some(mut stderr) = child.stderr.take() {
+        let depot_downloader_stdio_sender = depot_downloader_stdio_sender.clone();
         thread::spawn(move || {
             let mut buffer = [0; 256];
             loop {
                 match stderr.read(&mut buffer) {
                     Ok(n) if n > 0 => {
-                        println!("Error: {}", String::from_utf8_lossy(&buffer[..n]));
+                        // println!("Error: {}", String::from_utf8_lossy(&buffer[..n]));
+                        depot_downloader_stdio_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
                         if String::from_utf8_lossy(&buffer[..n]).contains("STEAM GUARD!") {
                             steam_guard_code_window_opened_sender.send(true).unwrap();
                         }
