@@ -10,6 +10,7 @@ use crate::modules::changes::Changes;
 pub struct CreateUpdateUI {
     open_file_dialog: Option<FileDialog>,
     changes_json_file: Option<PathBuf>,
+    changes: Changes,
 }
 
 impl CreateUpdateUI {
@@ -18,7 +19,9 @@ impl CreateUpdateUI {
         create_update_ui.display_file_dialog(ctx, ui);
         // Parse and display the changes
         create_update_ui.display_changes(ui);
-        // 
+        if create_update_ui.changes_json_file.is_some() {
+            // create_update_ui
+        }
     }
 
     fn display_file_dialog(&mut self, ctx: &Context, ui: &mut Ui) {
@@ -54,43 +57,41 @@ impl CreateUpdateUI {
         if let Some(file) = &self.changes_json_file {
             if let Ok(file) = std::fs::read_to_string(file) {
                 // Get changes
-                let changes = serde_json::from_str::<Changes>(&file)
+                self.changes = serde_json::from_str::<Changes>(&file)
                     .unwrap_or_else(|error| { Changes::new_error(error.to_string()) });
                 // Display changes
-                let information = format!("Creating update for {} ({}) from Build {} to Build {}", changes.depot, changes.manifest, changes.initial_build, changes.final_build);
+                let information = format!("Creating update for {} ({}) from Build {} to Build {}", self.changes.depot, self.changes.manifest, self.changes.initial_build, changes.final_build);
                 ui.label(information);
-                let num_columns = [!changes.added.is_empty(), !changes.removed.is_empty(), !changes.modified.is_empty()]
-                    .iter().filter(|&&x| x).count();
-                let lengths = [changes.added.len(), changes.removed.len(), changes.modified.len()];
-                let max_length = lengths
-                    .iter()
-                    .max();
+                let lengths = [self.changes.added.len(), self.changes.removed.len(), self.changes.modified.len()];
+                let num_columns = lengths.iter().filter(|&&x| x > 0).count();
+                let max_length = lengths.iter().max();
 
                 ScrollArea::both().max_height(ui.available_height() / 2.0).show(ui, |ui| {
                     ui.columns(num_columns, |columns| {
-                        if !changes.added.is_empty() {
+                        if !self.changes.added.is_empty() {
                             columns[0].heading("New files");
-                            columns[0].add(TextEdit::multiline(&mut changes.added.join("\n").to_string())
+                            columns[0].add(TextEdit::multiline(&mut self.changes.added.join("\n").to_string())
                                 .desired_rows(*max_length.unwrap()));
                             columns.rotate_left(1);
                         }
 
-                        if !changes.removed.is_empty() {
+                        if !self.changes.removed.is_empty() {
                             columns[0].heading("Removed files");
-                            columns[0].add(TextEdit::multiline(&mut changes.removed.join("\n").to_string())
+                            columns[0].add(TextEdit::multiline(&mut self.changes.removed.join("\n").to_string())
                                 .desired_rows(*max_length.unwrap()));
                             columns.rotate_left(1);
                         }
 
-                        if !changes.modified.is_empty() {
+                        if !self.changes.modified.is_empty() {
                             columns[0].heading("Modified files");
-                            columns[0].add(TextEdit::multiline(&mut changes.modified.join("\n").to_string())
+                            columns[0].add(TextEdit::multiline(&mut self.changes.modified.join("\n").to_string())
                                 .desired_rows(*max_length.unwrap()));
                         }
                     });
                 });
-
             }
         }
     }
+
+    fn display_download_stuff(&mut self, ui: &mut Ui) {}
 }
