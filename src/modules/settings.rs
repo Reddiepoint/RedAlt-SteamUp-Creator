@@ -10,7 +10,6 @@ pub struct SettingsUI {
 impl SettingsUI {
     pub fn display(ctx: &Context, ui: &mut Ui, settings_ui: &mut SettingsUI) {
         settings_ui.display_depot_downloader_login(ui);
-
     }
 
     fn display_depot_downloader_login(&mut self, ui: &mut Ui) {
@@ -25,7 +24,7 @@ impl SettingsUI {
                 .password(true));
         });
         ui.checkbox(&mut self.depot_downloader_settings.remember_credentials,
-                    "Remember credentials (requires login with Depot Downloader at least once)");
-
+                    "Remember password (Requires login with Depot Downloader at least once. \
+                    Subsequent logins require the username only.)");
     }
 }

@@ -1,8 +1,9 @@
 use std::fmt::format;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::process::{Command, Stdio};
+use std::sync::{Arc, Mutex};
 use std::thread;
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, TryRecvError};
 use eframe::egui::{Ui, Window};
 use crate::modules::changes::Changes;
 
@@ -51,12 +52,12 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest]);
     println!("{:?}", command);
     match settings.remember_credentials {
-        true => if !settings.username.is_empty() && !settings.password.is_empty() {
+        true => if !settings.password.is_empty() {
             command.args(["-username", &settings.username, "-password", &settings.password, "-remember-password"])
         } else {
-            command.args(["-username", "-remember-password"])
+            command.args(["-username", &settings.username, "-remember-password"])
         },
-        false => command.arg("-username").arg(&settings.username).arg("-password").arg(&settings.password)
+        false => command.args(["-username", &settings.username, "-password", &settings.password])
     };
     command.args(["-dir",
         &format!("./downloads/{} ({}) [{} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build),
@@ -106,13 +107,19 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
                 match steam_guard_code_receiver.try_recv() {
                     Ok(code) => {
                         println!("Auth code received: {}", code);
-                        let mut input = code;
-                        stdin.write_all(input.as_bytes()).expect("Failed to write to stdin");
+                        stdin.write_all(code.as_bytes()).expect("Failed to write to stdin");
+                        println!("Wrote to stdin");
+                        // continue;
                         break; // Exit the loop after writing to stdin
                     }
-                    Err(_) => {
+                    Err(TryRecvError::Empty) => {
                         // No code received, continue looping
-                        std::thread::sleep(std::time::Duration::from_millis(100)); // Add a small delay to avoid busy-waiting
+                        thread::sleep(std::time::Duration::from_millis(100)); // Sleep for 100 milliseconds
+                    }
+                    Err(TryRecvError::Disconnected) => {
+                        // Channel has been disconnected, break the loop
+                        println!("Channel has been disconnected");
+                        break;
                     }
                 }
             }
@@ -121,5 +128,6 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
 
 
     child.wait();
+
     Ok(())
 }
