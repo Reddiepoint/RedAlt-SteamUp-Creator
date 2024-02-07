@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 mod modules;
 
 use eframe::egui::ViewportBuilder;
