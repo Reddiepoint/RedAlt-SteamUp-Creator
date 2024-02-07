@@ -12,8 +12,8 @@ pub struct DepotDownloaderSettings {
     pub username: String,
     pub password: String,
     pub remember_credentials: bool,
-    pub steam_guard_code_window_opened: bool,
-    pub steam_guard_code: String,
+    pub depot_downloader_input_window_opened: bool,
+    pub input: String,
 }
 
 impl Default for DepotDownloaderSettings {
@@ -22,8 +22,8 @@ impl Default for DepotDownloaderSettings {
             username: String::new(),
             password: String::new(),
             remember_credentials: true,
-            steam_guard_code_window_opened: false,
-            steam_guard_code: String::new()
+            depot_downloader_input_window_opened: false,
+            input: String::new()
         }
     }
 }
@@ -37,9 +37,9 @@ fn write_changes_to_file(changes: &Changes) -> std::io::Result<()> {
 }
 
 pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
-                        steam_guard_code_window_opened_sender: Sender<bool>,
-                        steam_guard_code_receiver: Receiver<String>,
-                        depot_downloader_stdio_sender: Sender<String>)
+                        input_window_opened_sender: Sender<bool>,
+                        input_receiver: Receiver<String>,
+                        stdo_sender: Sender<String>)
                         -> std::io::Result<()> {
     write_changes_to_file(changes)?;
     // Run Depot Downloader
@@ -63,18 +63,28 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         &format!("./downloads/{} ({}) [{} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build),
         "-filelist", "files.txt"]);
 
-    println!("Spawned");
-    println!("{:?}", command);
     let mut child = command.spawn().unwrap();
 
+    let patterns = [
+        "STEAM GUARD! Please enter the auth code",
+        "Enter account password"
+    ];
+
     if let Some(mut stdout) = child.stdout.take() {
-        let depot_downloader_stdio_sender = depot_downloader_stdio_sender.clone();
+        let depot_downloader_stdio_sender = stdo_sender.clone();
+        let depot_downloader_window_opened_sender = input_window_opened_sender.clone();
         thread::spawn(move || {
             let mut buffer = [0; 256];
             loop {
                 match stdout.read(&mut buffer) {
                     Ok(n) if n > 0 => {
                         depot_downloader_stdio_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
+
+                        for pattern in patterns {
+                            if String::from_utf8_lossy(&buffer[..n]).contains(pattern) {
+                                depot_downloader_window_opened_sender.send(true).unwrap();
+                            }
+                        }
                     }
                     _ => break,
                 }
@@ -83,17 +93,20 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
     }
 
     if let Some(mut stderr) = child.stderr.take() {
-        let depot_downloader_stdio_sender = depot_downloader_stdio_sender.clone();
         thread::spawn(move || {
             let mut buffer = [0; 256];
             loop {
                 match stderr.read(&mut buffer) {
                     Ok(n) if n > 0 => {
                         // println!("Error: {}", String::from_utf8_lossy(&buffer[..n]));
-                        depot_downloader_stdio_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
-                        if String::from_utf8_lossy(&buffer[..n]).contains("STEAM GUARD!") {
-                            steam_guard_code_window_opened_sender.send(true).unwrap();
+                        stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
+
+                        for pattern in patterns {
+                            if String::from_utf8_lossy(&buffer[..n]).contains(pattern) {
+                                input_window_opened_sender.send(true).unwrap();
+                            }
                         }
+
                     }
                     _ => break,
                 }
@@ -101,56 +114,24 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         });
     }
 
-    /*if let Some(mut stdin) = child.stdin.take() {
-        println!("Stdin taken");
-        thread::spawn(move || {
-            loop {
-                match steam_guard_code_receiver.try_recv() {
-                    Ok(code) => {
-                        println!("Auth code received: {}", code);
-                        stdin.write_all(code.as_bytes()).expect("Failed to write to stdin");
-                        println!("Wrote to stdin");
-                        break; // Closes stdin pipe
-                    }
-                    Err(TryRecvError::Empty) => {
-                        thread::sleep(std::time::Duration::from_millis(100));
-                    }
-                    Err(TryRecvError::Disconnected) => {
-                        println!("Channel has been disconnected");
-                        break;
-                    }
-                }
-            }
-        });
-    }*/
     let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
 
-    // let child= Arc::new(Mutex::new(child));
-    // let child_clone = child.clone();
     thread::spawn(move || {
         loop {
             match child.try_wait() {
                 Ok(Some(_status)) => {
-                    println!("Exited");
                     break;
                 },
                 Ok(None) => {
-                    println!("Still running");
-                    match steam_guard_code_receiver.try_recv() {
+                    match input_receiver.try_recv() {
                         Ok(code) => {
                             let stdin = stdin.clone();
                             let code = format!("{}\n", code);
-                            println!("Auth code received: {}", code);
                             stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
-                            println!("Wrote to stdin");
                             stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
-                        }
-                        Err(TryRecvError::Empty) => {
-                            println!("Still running");
+                        },
+                        Err(_) => {
                             thread::sleep(std::time::Duration::from_millis(100));
-                        }
-                        Err(TryRecvError::Disconnected) => {
-                            println!("Channel has been disconnected");
                         }
                     }
                 }
@@ -158,12 +139,8 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
                     eprintln!("error: {}", error);
                 }
             }
-
         }
     });
-
-
-    // child.lock().expect("Failed to lock child").wait().expect("Failed to wait for child");
 
     Ok(())
 }

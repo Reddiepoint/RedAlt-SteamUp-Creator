@@ -12,10 +12,10 @@ use crate::modules::depot_downloader::{DepotDownloaderSettings, download_changes
 pub struct CreateUpdateChannels {
     steam_guard_code_window_opened_sender: Sender<bool>,
     steam_guard_code_window_opened_receiver: Receiver<bool>,
-    steam_guard_code_sender: Sender<String>,
-    steam_guard_code_receiver: Receiver<String>,
-    depot_downloader_stdio_sender: Sender<String>,
-    depot_downloader_stdio_receiver: Receiver<String>,
+    depot_downloader_stdi_sender: Sender<String>,
+    depot_downloader_stdi_receiver: Receiver<String>,
+    depot_downloader_stdo_sender: Sender<String>,
+    depot_downloader_stdo_receiver: Receiver<String>,
     depot_downloader_status_sender: Sender<std::io::Result<()>>,
     depot_downloader_status_receiver: Receiver<std::io::Result<()>>,
 }
@@ -29,10 +29,10 @@ impl Default for CreateUpdateChannels {
         Self {
             steam_guard_code_window_opened_sender,
             steam_guard_code_window_opened_receiver,
-            steam_guard_code_sender,
-            steam_guard_code_receiver,
-            depot_downloader_stdio_sender,
-            depot_downloader_stdio_receiver,
+            depot_downloader_stdi_sender: steam_guard_code_sender,
+            depot_downloader_stdi_receiver: steam_guard_code_receiver,
+            depot_downloader_stdo_sender: depot_downloader_stdio_sender,
+            depot_downloader_stdo_receiver: depot_downloader_stdio_receiver,
             depot_downloader_status_sender,
             depot_downloader_status_receiver
         }
@@ -57,7 +57,7 @@ impl CreateUpdateUI {
         create_update_ui.display_changes(ui);
         if !create_update_ui.changes.depot.is_empty() {
             create_update_ui.display_download_stuff(ui, depot_downloader_settings, tab_bar);
-            create_update_ui.display_steam_guard_code_window(ui, depot_downloader_settings);
+            create_update_ui.display_depot_downloader_input_window(ui, depot_downloader_settings);
             create_update_ui.display_depot_downloader_stdio(ui);
         }
     }
@@ -142,9 +142,9 @@ impl CreateUpdateUI {
                 let changes = self.changes.clone();
                 let depot_downloader_settings = depot_downloader_settings.clone();
                 let sender = self.channels.steam_guard_code_window_opened_sender.clone();
-                let receiver = self.channels.steam_guard_code_receiver.clone();
+                let receiver = self.channels.depot_downloader_stdi_receiver.clone();
                 let status_sender = self.channels.depot_downloader_status_sender.clone();
-                let stdio_sender = self.channels.depot_downloader_stdio_sender.clone();
+                let stdio_sender = self.channels.depot_downloader_stdo_sender.clone();
                 self.depot_downloader_running = true;
                 thread::spawn(move || {
                     let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender);
@@ -169,32 +169,32 @@ impl CreateUpdateUI {
         }
     }
 
-    fn display_steam_guard_code_window(&mut self, ui: &mut Ui, depot_downloader_settings: &mut DepotDownloaderSettings) {
+    fn display_depot_downloader_input_window(&mut self, ui: &mut Ui, depot_downloader_settings: &mut DepotDownloaderSettings) {
         if let Ok(open) = self.channels.steam_guard_code_window_opened_receiver.try_recv() {
-            depot_downloader_settings.steam_guard_code_window_opened = open;
+            depot_downloader_settings.depot_downloader_input_window_opened = open;
             println!("Received");
         }
-        let mut open = depot_downloader_settings.steam_guard_code_window_opened;
-        Window::new("Steam Guard Code").open(&mut depot_downloader_settings.steam_guard_code_window_opened)
+        let mut open = depot_downloader_settings.depot_downloader_input_window_opened;
+        Window::new("Depot Downloader Input").open(&mut depot_downloader_settings.depot_downloader_input_window_opened)
             .show(ui.ctx(), |ui| {
                 ui.horizontal(|ui| {
-                    ui.label("Enter Steam Guard Code:");
-                    ui.text_edit_singleline(&mut depot_downloader_settings.steam_guard_code);
+                    ui.label("Enter input:");
+                    ui.text_edit_singleline(&mut depot_downloader_settings.input);
                 });
 
-                open = if depot_downloader_settings.steam_guard_code.len() == 5 && ui.button("Submit").clicked() {
-                    self.channels.steam_guard_code_sender.send(depot_downloader_settings.steam_guard_code.clone()).unwrap();
+                open = if ui.button("Submit").clicked() {
+                    self.channels.depot_downloader_stdi_sender.send(depot_downloader_settings.input.clone()).unwrap();
                     false
                 } else {
                     open
                 };
             });
 
-        depot_downloader_settings.steam_guard_code_window_opened = open;
+        depot_downloader_settings.depot_downloader_input_window_opened = open;
     }
 
     fn display_depot_downloader_stdio(&mut self, ui: &mut Ui) {
-        if let Ok(output) = self.channels.depot_downloader_stdio_receiver.try_recv() {
+        if let Ok(output) = self.channels.depot_downloader_stdo_receiver.try_recv() {
             self.depot_downloader_stdio += &output
         }
         let mut output = self.depot_downloader_stdio.clone();
