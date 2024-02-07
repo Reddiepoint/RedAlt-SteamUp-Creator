@@ -136,9 +136,11 @@ impl CreateUpdateUI {
         }
     }
 
-    fn display_download_stuff(&mut self, ui: &mut Ui, mut depot_downloader_settings: &mut DepotDownloaderSettings, mut tab_bar: &mut TabBar) {
+    fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &DepotDownloaderSettings, tab_bar: &mut TabBar) {
         if !depot_downloader_settings.username.is_empty() && (!depot_downloader_settings.password.is_empty() || depot_downloader_settings.remember_credentials) {
             if ui.add_enabled(!self.depot_downloader_running, Button::new(format!("Download changes as {}", depot_downloader_settings.username))).clicked() {
+                let _ = std::fs::write("last_user.txt", depot_downloader_settings.username.clone());
+
                 let changes = self.changes.clone();
                 let depot_downloader_settings = depot_downloader_settings.clone();
                 let sender = self.channels.steam_guard_code_window_opened_sender.clone();
@@ -147,9 +149,13 @@ impl CreateUpdateUI {
                 let stdio_sender = self.channels.depot_downloader_stdo_sender.clone();
                 self.depot_downloader_running = true;
                 thread::spawn(move || {
-                    let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender);
-                    status_sender.send(status).unwrap();
+                    let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender, status_sender.clone());
+                    if status.is_err() {
+                        let _ = status_sender.send(status);
+                    }
                 });
+
+
             }
         } else if depot_downloader_settings.username.is_empty() && ui.button("Login").clicked() {
             *tab_bar = TabBar::Settings;

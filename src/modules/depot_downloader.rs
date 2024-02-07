@@ -39,7 +39,8 @@ fn write_changes_to_file(changes: &Changes) -> std::io::Result<()> {
 pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
                         input_window_opened_sender: Sender<bool>,
                         input_receiver: Receiver<String>,
-                        stdo_sender: Sender<String>)
+                        stdo_sender: Sender<String>,
+                        status_sender: Sender<std::io::Result<()>>)
                         -> std::io::Result<()> {
     write_changes_to_file(changes)?;
     // Run Depot Downloader
@@ -98,7 +99,6 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
             loop {
                 match stderr.read(&mut buffer) {
                     Ok(n) if n > 0 => {
-                        // println!("Error: {}", String::from_utf8_lossy(&buffer[..n]));
                         stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
 
                         for pattern in patterns {
@@ -106,7 +106,6 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
                                 input_window_opened_sender.send(true).unwrap();
                             }
                         }
-
                     }
                     _ => break,
                 }
@@ -120,6 +119,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         loop {
             match child.try_wait() {
                 Ok(Some(_status)) => {
+                    let _ = status_sender.send(Ok(()));
                     break;
                 },
                 Ok(None) => {

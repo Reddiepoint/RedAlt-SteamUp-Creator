@@ -9,9 +9,15 @@ pub struct SettingsUI {
 
 impl SettingsUI {
     pub fn display(ctx: &Context, ui: &mut Ui, settings_ui: &mut SettingsUI) {
+
         settings_ui.display_depot_downloader_login(ui);
     }
 
+    pub fn read_username_from_file(&mut self) {
+        if let Ok(mut file) = std::fs::File::open("last_user.txt") {
+            self.depot_downloader_settings.username = std::io::read_to_string(&mut file).unwrap();
+        }
+    }
     fn display_depot_downloader_login(&mut self, ui: &mut Ui) {
         ui.heading("Steam Depot Downloader Login");
         ui.horizontal(|ui| {
