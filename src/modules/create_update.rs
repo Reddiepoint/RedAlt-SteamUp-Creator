@@ -23,16 +23,16 @@ pub struct CreateUpdateChannels {
 impl Default for CreateUpdateChannels {
     fn default() -> Self {
         let (steam_guard_code_window_opened_sender, steam_guard_code_window_opened_receiver) = crossbeam_channel::bounded(1);
-        let (steam_guard_code_sender, steam_guard_code_receiver) = crossbeam_channel::bounded(1);
-        let (depot_downloader_stdio_sender, depot_downloader_stdio_receiver) = crossbeam_channel::unbounded();
+        let (depot_downloader_stdi_sender, depot_downloader_stdi_receiver) = crossbeam_channel::bounded(1);
+        let (depot_downloader_stdo_sender, depot_downloader_stdo_receiver) = crossbeam_channel::unbounded();
         let (depot_downloader_status_sender, depot_downloader_status_receiver) = crossbeam_channel::bounded(1);
         Self {
             steam_guard_code_window_opened_sender,
             steam_guard_code_window_opened_receiver,
-            depot_downloader_stdi_sender: steam_guard_code_sender,
-            depot_downloader_stdi_receiver: steam_guard_code_receiver,
-            depot_downloader_stdo_sender: depot_downloader_stdio_sender,
-            depot_downloader_stdo_receiver: depot_downloader_stdio_receiver,
+            depot_downloader_stdi_sender,
+            depot_downloader_stdi_receiver,
+            depot_downloader_stdo_sender,
+            depot_downloader_stdo_receiver,
             depot_downloader_status_sender,
             depot_downloader_status_receiver
         }
