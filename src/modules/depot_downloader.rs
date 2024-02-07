@@ -50,7 +50,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())
         .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest]);
-    println!("{:?}", command);
+
     match settings.remember_credentials {
         true => if !settings.password.is_empty() {
             command.args(["-username", &settings.username, "-password", &settings.password, "-remember-password"])
@@ -64,6 +64,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         "-filelist", "files.txt"]);
 
     println!("Spawned");
+    println!("{:?}", command);
     let mut child = command.spawn().unwrap();
 
     if let Some(mut stdout) = child.stdout.take() {
@@ -100,7 +101,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         });
     }
 
-    if let Some(mut stdin) = child.stdin.take() {
+    /*if let Some(mut stdin) = child.stdin.take() {
         println!("Stdin taken");
         thread::spawn(move || {
             loop {
@@ -109,25 +110,60 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
                         println!("Auth code received: {}", code);
                         stdin.write_all(code.as_bytes()).expect("Failed to write to stdin");
                         println!("Wrote to stdin");
-                        // continue;
-                        break; // Exit the loop after writing to stdin
+                        break; // Closes stdin pipe
                     }
                     Err(TryRecvError::Empty) => {
-                        // No code received, continue looping
-                        thread::sleep(std::time::Duration::from_millis(100)); // Sleep for 100 milliseconds
+                        thread::sleep(std::time::Duration::from_millis(100));
                     }
                     Err(TryRecvError::Disconnected) => {
-                        // Channel has been disconnected, break the loop
                         println!("Channel has been disconnected");
                         break;
                     }
                 }
             }
         });
-    }
+    }*/
+    let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
+
+    // let child= Arc::new(Mutex::new(child));
+    // let child_clone = child.clone();
+    thread::spawn(move || {
+        loop {
+            match child.try_wait() {
+                Ok(Some(_status)) => {
+                    println!("Exited");
+                    break;
+                },
+                Ok(None) => {
+                    println!("Still running");
+                    match steam_guard_code_receiver.try_recv() {
+                        Ok(code) => {
+                            let stdin = stdin.clone();
+                            let code = format!("{}\n", code);
+                            println!("Auth code received: {}", code);
+                            stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
+                            println!("Wrote to stdin");
+                            stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
+                        }
+                        Err(TryRecvError::Empty) => {
+                            println!("Still running");
+                            thread::sleep(std::time::Duration::from_millis(100));
+                        }
+                        Err(TryRecvError::Disconnected) => {
+                            println!("Channel has been disconnected");
+                        }
+                    }
+                }
+                Err(error) => {
+                    eprintln!("error: {}", error);
+                }
+            }
+
+        }
+    });
 
 
-    child.wait();
+    // child.lock().expect("Failed to lock child").wait().expect("Failed to wait for child");
 
     Ok(())
 }
