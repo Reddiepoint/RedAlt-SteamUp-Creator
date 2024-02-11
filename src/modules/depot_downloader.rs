@@ -5,15 +5,19 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use crossbeam_channel::{Receiver, Sender, TryRecvError};
 use eframe::egui::{Ui, Window};
+use serde::{Deserialize, Serialize};
 use crate::modules::changes::Changes;
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct DepotDownloaderSettings {
     pub username: String,
+    #[serde(skip)]
     pub password: String,
     pub remember_credentials: bool,
+    #[serde(skip)]
     pub depot_downloader_input_window_opened: bool,
-    pub input: String,
+    #[serde(skip)]
+    pub input: String
 }
 
 impl Default for DepotDownloaderSettings {

@@ -139,7 +139,6 @@ impl CreateUpdateUI {
     fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &DepotDownloaderSettings, tab_bar: &mut TabBar) {
         if !depot_downloader_settings.username.is_empty() && (!depot_downloader_settings.password.is_empty() || depot_downloader_settings.remember_credentials) {
             if ui.add_enabled(!self.depot_downloader_running, Button::new(format!("Download changes as {}", depot_downloader_settings.username))).clicked() {
-                let _ = std::fs::write("last_user.txt", depot_downloader_settings.username.clone());
 
                 let changes = self.changes.clone();
                 let depot_downloader_settings = depot_downloader_settings.clone();

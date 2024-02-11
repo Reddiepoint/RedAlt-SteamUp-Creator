@@ -22,7 +22,7 @@ pub struct RedAltSteamUpdateCreator {
 
 impl App for RedAltSteamUpdateCreator {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
-        self.settings_ui.read_username_from_file();
+        self.settings_ui.read_settings();
         RedAltSteamUpdateCreator::display_top_bar(self, ctx);
         RedAltSteamUpdateCreator::display_central_panel(self, ctx);
     }
