@@ -64,7 +64,7 @@ impl SettingsUI {
                     Subsequent logins require the username only.)");
 
         ui.horizontal(|ui| {
-            ui.label("OS:");
+            ui.label("Download files for OS:");
             ComboBox::from_id_source("OS").selected_text(format!("{}", self.depot_downloader_settings.os))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.depot_downloader_settings.os, OSType::Windows, "Windows");

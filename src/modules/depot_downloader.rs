@@ -1,10 +1,9 @@
-use std::fmt::{Display, format, Formatter};
-use std::io::{BufRead, BufReader, Read, Write};
+use std::fmt::{Display, Formatter};
+use std::io::{Read, Write};
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use crossbeam_channel::{Receiver, Sender, TryRecvError};
-use eframe::egui::{Ui, Window};
+use crossbeam_channel::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
 use crate::modules::changes::Changes;
 
