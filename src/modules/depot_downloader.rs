@@ -1,4 +1,4 @@
-use std::fmt::format;
+use std::fmt::{Display, format, Formatter};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
@@ -8,11 +8,37 @@ use eframe::egui::{Ui, Window};
 use serde::{Deserialize, Serialize};
 use crate::modules::changes::Changes;
 
+
+#[derive(Clone, Deserialize, PartialEq, Serialize)]
+pub enum OSType {
+    Windows,
+    Linux,
+    Mac,
+    Current
+}
+
+impl Display for OSType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            OSType::Windows => "Windows",
+            OSType::Linux => "Linux",
+            OSType::Mac => "Mac",
+            OSType::Current => "Current OS",
+        })
+    }
+}
+
 #[derive(Clone, Deserialize, Serialize)]
+#[serde(default)]
 pub struct DepotDownloaderSettings {
+    // Used by Depot Downloader
     pub username: String,
     #[serde(skip)]
     pub password: String,
+    pub os: OSType,
+    pub max_servers: u8,
+    pub max_downloads: u8,
+    // Used by app
     pub remember_credentials: bool,
     #[serde(skip)]
     pub depot_downloader_input_window_opened: bool,
@@ -25,9 +51,12 @@ impl Default for DepotDownloaderSettings {
         Self {
             username: String::new(),
             password: String::new(),
+            os: OSType::Current,
+            max_servers: 20,
+            max_downloads: 8,
             remember_credentials: true,
             depot_downloader_input_window_opened: false,
-            input: String::new()
+            input: String::new(),
         }
     }
 }
@@ -54,7 +83,10 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         .stdin(Stdio::piped())
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())
-        .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest]);
+        .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest])
+        .args(["-dir",
+            &format!("./downloads/{} ({}) [{} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build)])
+        .args(["-filelist", "files.txt"]);
 
     match settings.remember_credentials {
         true => if !settings.password.is_empty() {
@@ -64,9 +96,17 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         },
         false => command.args(["-username", &settings.username, "-password", &settings.password])
     };
-    command.args(["-dir",
-        &format!("./downloads/{} ({}) [{} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build),
-        "-filelist", "files.txt"]);
+
+    match settings.os {
+        OSType::Windows => { command.args(["-os", "windows"]); },
+        OSType::Linux => { command.args(["-os", "linux"]); },
+        OSType::Mac => { command.args(["-os", "macos"]); },
+        OSType::Current => {}
+    }
+
+    command
+        .args(["-max-servers", &settings.max_servers.to_string()])
+        .args(["-max-downloads", &settings.max_downloads.to_string()]);
 
     let mut child = command.spawn().unwrap();
 

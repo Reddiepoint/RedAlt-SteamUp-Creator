@@ -1,6 +1,6 @@
-use eframe::egui::{Context, TextEdit, Ui};
+use eframe::egui::{ComboBox, Context, Slider, TextEdit, Ui};
 use serde::{Deserialize, Serialize};
-use crate::modules::depot_downloader::DepotDownloaderSettings;
+use crate::modules::depot_downloader::{DepotDownloaderSettings, OSType};
 
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct SettingsUI {
@@ -31,11 +31,23 @@ impl SettingsUI {
     }
 
     pub fn display(ctx: &Context, ui: &mut Ui, settings_ui: &mut SettingsUI) {
+        settings_ui.display_settings_buttons(ui);
         settings_ui.display_depot_downloader_login(ui);
         // let _ = std::fs::write("last_user.txt", settings_ui.depot_downloader_settings.username.clone());
-        settings_ui.set_settings();
     }
 
+    fn display_settings_buttons(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            if ui.button("Save config").clicked() {
+                self.set_settings();
+            }
+
+            if ui.button("Reload config").clicked() {
+                self.read_settings = false;
+            }
+        });
+
+    }
     fn display_depot_downloader_login(&mut self, ui: &mut Ui) {
         ui.heading("Steam Depot Downloader Login");
         ui.horizontal(|ui| {
@@ -48,8 +60,29 @@ impl SettingsUI {
                 .password(true));
         });
         ui.checkbox(&mut self.depot_downloader_settings.remember_credentials,
-                    "Remember password (Requires login with Depot Downloader at least once. \
+                    "Remember credentials (Requires login with Depot Downloader at least once. \
                     Subsequent logins require the username only.)");
+
+        ui.horizontal(|ui| {
+            ui.label("OS:");
+            ComboBox::from_id_source("OS").selected_text(format!("{}", self.depot_downloader_settings.os))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.depot_downloader_settings.os, OSType::Windows, "Windows");
+                    ui.selectable_value(&mut self.depot_downloader_settings.os, OSType::Linux, "Linux");
+                    ui.selectable_value(&mut self.depot_downloader_settings.os, OSType::Mac, "Mac");
+                    ui.selectable_value(&mut self.depot_downloader_settings.os, OSType::Current, "Current OS");
+                });
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Max number of server connections");
+            ui.add(Slider::new(&mut self.depot_downloader_settings.max_servers, 1..=32));
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Max number of concurrent chunks downloaded");
+            ui.add(Slider::new(&mut self.depot_downloader_settings.max_downloads, 1..=32));
+        });
     }
 }
 
