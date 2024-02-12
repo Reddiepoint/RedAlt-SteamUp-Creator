@@ -77,7 +77,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
     write_changes_to_file(changes)?;
     let _ = stdo_sender.clone().send("Starting Depot Downloader...\n".to_string());
     // Download path
-    let path = format!("./downloads/{} ({}) [{} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build);
+    let path = format!("./downloads/{} ({}) [Build {} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build);
     // Run Depot Downloader
     let mut command = Command::new("./DepotDownloader.exe");
     command
@@ -109,7 +109,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         .args(["-max-servers", &settings.max_servers.to_string()])
         .args(["-max-downloads", &settings.max_downloads.to_string()]);
 
-    let mut child = command.spawn().unwrap();
+    let mut child = command.spawn()?;
 
     let patterns = [
         "STEAM GUARD! Please enter the auth code",
