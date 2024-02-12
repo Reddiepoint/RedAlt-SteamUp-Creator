@@ -5,3 +5,4 @@ mod changes;
 mod settings;
 mod depot_downloader;
 mod compression;
+mod compression_settings;

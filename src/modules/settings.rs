@@ -1,9 +1,12 @@
+use std::ffi::OsStr;
+use std::path::Path;
 use eframe::egui::{ComboBox, Context, Slider, TextEdit, Ui};
+use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
-use crate::modules::compression::CompressionSettings;
+use crate::modules::compression::{Archiver, CompressionSettings};
 use crate::modules::depot_downloader::{DepotDownloaderSettings, OSType};
 
-#[derive(Clone, Default, Deserialize, Serialize)]
+#[derive(Default, Deserialize, Serialize)]
 pub struct SettingsUI {
     pub depot_downloader_settings: DepotDownloaderSettings,
     pub compression_settings: CompressionSettings,
@@ -25,16 +28,19 @@ impl SettingsUI {
     }
 
     fn set_settings(&mut self) {
-        let mut settings = self.clone();
+        let mut username = String::new();
         if !self.depot_downloader_settings.remember_credentials {
-            settings.depot_downloader_settings.username = "".to_string();
+            username = self.depot_downloader_settings.username.clone();
+            self.depot_downloader_settings.username = "".to_string();
         }
-        let _ = std::fs::write("settings.json", serde_json::to_string_pretty(&settings).unwrap());
+        let _ = std::fs::write("settings.json", serde_json::to_string_pretty(&self).unwrap());
+        self.depot_downloader_settings.username = username;
     }
 
     pub fn display(ctx: &Context, ui: &mut Ui, settings_ui: &mut SettingsUI) {
         settings_ui.display_settings_buttons(ui);
-        settings_ui.display_depot_downloader_login(ui);
+        settings_ui.display_depot_downloader_settings(ui);
+        settings_ui.display_compression_settings(ui);
         // let _ = std::fs::write("last_user.txt", settings_ui.depot_downloader_settings.username.clone());
     }
 
@@ -48,10 +54,9 @@ impl SettingsUI {
                 self.read_settings = false;
             }
         });
-
     }
-    fn display_depot_downloader_login(&mut self, ui: &mut Ui) {
-        ui.heading("Steam Depot Downloader Login");
+    fn display_depot_downloader_settings(&mut self, ui: &mut Ui) {
+        ui.heading("Steam Depot Downloader Settings");
         ui.horizontal(|ui| {
             ui.label("Username:");
             ui.text_edit_singleline(&mut self.depot_downloader_settings.username);
@@ -84,6 +89,58 @@ impl SettingsUI {
         ui.horizontal(|ui| {
             ui.label("Max number of concurrent chunks downloaded");
             ui.add(Slider::new(&mut self.depot_downloader_settings.max_downloads, 1..=32));
+        });
+    }
+
+    fn display_compression_settings(&mut self, ui: &mut Ui) {
+        ui.heading("Compression Settings");
+        ui.horizontal(|ui| {
+            ui.label("Archiver:");
+            ComboBox::from_id_source("Archiver").selected_text(format!("{}", self.compression_settings.archiver))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.compression_settings.archiver, Archiver::SevenZip, "7zip");
+                    ui.selectable_value(&mut self.compression_settings.archiver, Archiver::WinRAR, "WinRAR");
+                });
+        });
+
+        ui.horizontal(|ui| {
+            ui.horizontal(|ui| {
+                let path = match self.compression_settings.archiver {
+                    Archiver::SevenZip => &self.compression_settings.seven_zip_settings.path,
+                    Archiver::WinRAR => &self.compression_settings.win_rar_settings.path,
+                };
+
+                match &path {
+                    None => ui.label("Select archiver executable:"),
+                    Some(path) => ui.label(format!("Using archiver: {}", path.display())),
+                };
+
+                if ui.button("Select archiver").clicked() {
+                    // Show only files with the extension "json".
+                    let filter = Box::new({
+                        let ext = Some(OsStr::new("exe"));
+                        move |path: &Path| -> bool { path.extension() == ext }
+                    });
+                    let mut dialog = FileDialog::open_file(path.clone()).show_files_filter(filter);
+                    dialog.open();
+                    self.compression_settings.open_archiver_dialog = Some(dialog);
+                }
+
+                if let Some(dialog) = &mut self.compression_settings.open_archiver_dialog {
+                    if dialog.show(ui.ctx()).selected() {
+                        if let Some(file) = dialog.path() {
+                            match self.compression_settings.archiver {
+                                Archiver::SevenZip => {
+                                    self.compression_settings.seven_zip_settings.path = Some(file.to_path_buf()).clone();
+                                }
+                                Archiver::WinRAR => {
+                                    self.compression_settings.win_rar_settings.path = Some(file.to_path_buf()).clone();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         });
     }
 }
