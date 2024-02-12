@@ -45,7 +45,7 @@ impl Default for SevenZipSettings {
             compression_level: 9,
             compression_method: "LZMA2".to_string(),
             dictionary_size: 64,
-            word_size: 64,
+            word_size: 273,
             solid_block_size: 16,
             solid_block_size_unit: "g".to_string(),
             number_of_cpu_threads: thread::available_parallelism().unwrap().get() as u8,

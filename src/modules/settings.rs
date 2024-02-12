@@ -205,7 +205,7 @@ impl SettingsUI {
 
                 ui.horizontal(|ui| {
                     ui.label("CPU Threads:");
-                    let max_cpu_threads = std::thread::available_parallelism().unwrap().get() as u8;
+                    let max_cpu_threads = std::thread::available_parallelism().unwrap().get() as u8 * 2;
                     ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.number_of_cpu_threads, 1..=max_cpu_threads));
                 });
 
