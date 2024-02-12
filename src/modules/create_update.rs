@@ -205,6 +205,7 @@ impl CreateUpdateUI {
         let mut output = self.depot_downloader_stdio.clone();
         ScrollArea::vertical().id_source("Depot Downloader Output").max_height(ui.available_height() / 3.0).show(ui, |ui| {
             ui.add(TextEdit::multiline(&mut output).desired_width(ui.available_width()).cursor_at_end(true));
+            ui.scroll_to_cursor(None);
         });
     }
 }
