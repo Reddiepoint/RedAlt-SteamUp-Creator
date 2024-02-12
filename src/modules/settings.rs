@@ -40,6 +40,7 @@ impl SettingsUI {
     pub fn display(ctx: &Context, ui: &mut Ui, settings_ui: &mut SettingsUI) {
         settings_ui.display_settings_buttons(ui);
         settings_ui.display_depot_downloader_settings(ui);
+        ui.separator();
         settings_ui.display_compression_settings(ui);
         // let _ = std::fs::write("last_user.txt", settings_ui.depot_downloader_settings.username.clone());
     }
@@ -115,7 +116,7 @@ impl SettingsUI {
                     Some(path) => ui.label(format!("Using archiver: {}", path.display())),
                 };
 
-                if ui.button("Select archiver").clicked() {
+                if ui.button("Change path").clicked() {
                     // Show only files with the extension "json".
                     let filter = Box::new({
                         let ext = Some(OsStr::new("exe"));
