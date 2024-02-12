@@ -1,10 +1,12 @@
 use eframe::egui::{ComboBox, Context, Slider, TextEdit, Ui};
 use serde::{Deserialize, Serialize};
+use crate::modules::compression::CompressionSettings;
 use crate::modules::depot_downloader::{DepotDownloaderSettings, OSType};
 
 #[derive(Clone, Default, Deserialize, Serialize)]
 pub struct SettingsUI {
     pub depot_downloader_settings: DepotDownloaderSettings,
+    pub compression_settings: CompressionSettings,
     #[serde(skip)]
     pub read_settings: bool,
 }

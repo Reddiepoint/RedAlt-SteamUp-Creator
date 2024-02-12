@@ -41,6 +41,7 @@ impl RedAltSteamUpdateCreator {
             match &self.tab_bar {
                 TabBar::CreateUpdate => CreateUpdateUI::display(ctx, ui, &mut self.create_update_ui,
                                                                 &mut self.settings_ui.depot_downloader_settings,
+                                                                &mut self.settings_ui.compression_settings,
                                                                 &mut self.tab_bar),
                 TabBar::Settings => SettingsUI::display(ctx, ui, &mut self.settings_ui),
             }

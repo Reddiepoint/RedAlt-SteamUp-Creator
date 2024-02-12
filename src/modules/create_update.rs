@@ -6,6 +6,7 @@ use eframe::egui::{Button, Context, ScrollArea, TextEdit, Ui, Window};
 use egui_file::FileDialog;
 use crate::modules::app::TabBar;
 use crate::modules::changes::Changes;
+use crate::modules::compression::CompressionSettings;
 use crate::modules::depot_downloader::{DepotDownloaderSettings, download_changes};
 
 
@@ -16,8 +17,8 @@ pub struct CreateUpdateChannels {
     depot_downloader_stdi_receiver: Receiver<String>,
     depot_downloader_stdo_sender: Sender<String>,
     depot_downloader_stdo_receiver: Receiver<String>,
-    depot_downloader_status_sender: Sender<std::io::Result<()>>,
-    depot_downloader_status_receiver: Receiver<std::io::Result<()>>,
+    depot_downloader_path_sender: Sender<std::io::Result<String>>,
+    depot_downloader_path_receiver: Receiver<std::io::Result<String>>,
 }
 
 impl Default for CreateUpdateChannels {
@@ -25,7 +26,7 @@ impl Default for CreateUpdateChannels {
         let (steam_guard_code_window_opened_sender, steam_guard_code_window_opened_receiver) = crossbeam_channel::bounded(1);
         let (depot_downloader_stdi_sender, depot_downloader_stdi_receiver) = crossbeam_channel::bounded(1);
         let (depot_downloader_stdo_sender, depot_downloader_stdo_receiver) = crossbeam_channel::unbounded();
-        let (depot_downloader_status_sender, depot_downloader_status_receiver) = crossbeam_channel::bounded(1);
+        let (depot_downloader_path_sender, depot_downloader_path_receiver) = crossbeam_channel::bounded(1);
         Self {
             steam_guard_code_window_opened_sender,
             steam_guard_code_window_opened_receiver,
@@ -33,8 +34,8 @@ impl Default for CreateUpdateChannels {
             depot_downloader_stdi_receiver,
             depot_downloader_stdo_sender,
             depot_downloader_stdo_receiver,
-            depot_downloader_status_sender,
-            depot_downloader_status_receiver
+            depot_downloader_path_sender,
+            depot_downloader_path_receiver
         }
     }
 }
@@ -50,13 +51,15 @@ pub struct CreateUpdateUI {
 }
 
 impl CreateUpdateUI {
-    pub fn display(ctx: &Context, ui: &mut Ui, create_update_ui: &mut CreateUpdateUI, depot_downloader_settings: &mut DepotDownloaderSettings, tab_bar: &mut TabBar) {
+    pub fn display(ctx: &Context, ui: &mut Ui, create_update_ui: &mut CreateUpdateUI,
+                   depot_downloader_settings: &mut DepotDownloaderSettings, compression_settings: &mut CompressionSettings,
+                   tab_bar: &mut TabBar) {
         // Choose the JSON file
         create_update_ui.display_file_dialog(ctx, ui);
         // Parse and display the changes
         create_update_ui.display_changes(ui);
         if !create_update_ui.changes.depot.is_empty() {
-            create_update_ui.display_download_stuff(ui, depot_downloader_settings, tab_bar);
+            create_update_ui.display_download_stuff(ui, depot_downloader_settings, compression_settings, tab_bar);
             create_update_ui.display_depot_downloader_input_window(ui, depot_downloader_settings);
             create_update_ui.display_depot_downloader_stdio(ui);
         }
@@ -136,7 +139,8 @@ impl CreateUpdateUI {
         }
     }
 
-    fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &DepotDownloaderSettings, tab_bar: &mut TabBar) {
+    fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &DepotDownloaderSettings,
+                              compression_settings: &mut CompressionSettings, tab_bar: &mut TabBar) {
         if !depot_downloader_settings.username.is_empty() && (!depot_downloader_settings.password.is_empty() || depot_downloader_settings.remember_credentials) {
             if ui.add_enabled(!self.depot_downloader_running, Button::new(format!("Download changes as {}", depot_downloader_settings.username))).clicked() {
 
@@ -144,13 +148,13 @@ impl CreateUpdateUI {
                 let depot_downloader_settings = depot_downloader_settings.clone();
                 let sender = self.channels.steam_guard_code_window_opened_sender.clone();
                 let receiver = self.channels.depot_downloader_stdi_receiver.clone();
-                let status_sender = self.channels.depot_downloader_status_sender.clone();
+                let path_sender = self.channels.depot_downloader_path_sender.clone();
                 let stdio_sender = self.channels.depot_downloader_stdo_sender.clone();
                 self.depot_downloader_running = true;
                 thread::spawn(move || {
-                    let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender, status_sender.clone());
+                    let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender, path_sender.clone());
                     if status.is_err() {
-                        let _ = status_sender.send(status);
+                        let _ = path_sender.send(Err(status.unwrap_err()));
                     }
                 });
 
@@ -160,10 +164,11 @@ impl CreateUpdateUI {
             *tab_bar = TabBar::Settings;
         }
 
-        if let Ok(status) = self.channels.depot_downloader_status_receiver.try_recv() {
+        if let Ok(status) = self.channels.depot_downloader_path_receiver.try_recv() {
             match status {
-                Ok(_) => {
+                Ok(path) => {
                     println!("Success");
+                    compression_settings.download_path = path;
                     self.depot_downloader_running = false;
                 }
                 Err(error) => {

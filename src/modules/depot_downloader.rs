@@ -72,11 +72,13 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
                         input_window_opened_sender: Sender<bool>,
                         input_receiver: Receiver<String>,
                         stdo_sender: Sender<String>,
-                        status_sender: Sender<std::io::Result<()>>)
+                        status_sender: Sender<std::io::Result<String>>)
                         -> std::io::Result<()> {
     write_changes_to_file(changes)?;
+    let _ = stdo_sender.clone().send("Starting Depot Downloader...\n".to_string());
+    // Download path
+    let path = format!("./downloads/{} ({}) [{} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build);
     // Run Depot Downloader
-    // Create command
     let mut command = Command::new("./DepotDownloader.exe");
     command
         .stdin(Stdio::piped())
@@ -84,7 +86,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         .stdout(Stdio::piped())
         .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest])
         .args(["-dir",
-            &format!("./downloads/{} ({}) [{} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build)])
+            &path])
         .args(["-filelist", "files.txt"]);
 
     match settings.remember_credentials {
@@ -115,18 +117,18 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
     ];
 
     if let Some(mut stdout) = child.stdout.take() {
-        let depot_downloader_stdio_sender = stdo_sender.clone();
-        let depot_downloader_window_opened_sender = input_window_opened_sender.clone();
+        let stdo_sender = stdo_sender.clone();
+        let input_window_opened_sender = input_window_opened_sender.clone();
         thread::spawn(move || {
-            let mut buffer = [0; 256];
+            let mut buffer = [0; 1024];
             loop {
                 match stdout.read(&mut buffer) {
                     Ok(n) if n > 0 => {
-                        depot_downloader_stdio_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
+                        let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
 
                         for pattern in patterns {
                             if String::from_utf8_lossy(&buffer[..n]).contains(pattern) {
-                                depot_downloader_window_opened_sender.send(true).unwrap();
+                                input_window_opened_sender.send(true).unwrap();
                             }
                         }
                     }
@@ -137,12 +139,14 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
     }
 
     if let Some(mut stderr) = child.stderr.take() {
+        let stdo_sender = stdo_sender.clone();
+        let input_window_opened_sender = input_window_opened_sender.clone();
         thread::spawn(move || {
-            let mut buffer = [0; 256];
+            let mut buffer = [0; 1024];
             loop {
                 match stderr.read(&mut buffer) {
                     Ok(n) if n > 0 => {
-                        stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
+                        let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
 
                         for pattern in patterns {
                             if String::from_utf8_lossy(&buffer[..n]).contains(pattern) {
@@ -161,8 +165,9 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
     thread::spawn(move || {
         loop {
             match child.try_wait() {
-                Ok(Some(_status)) => {
-                    let _ = status_sender.send(Ok(()));
+                Ok(Some(_exit_status)) => {
+                    let _ = status_sender.send(Ok(path));
+                    let _ = stdo_sender.send("Depot Downloader exited.\n".to_string());
                     break;
                 },
                 Ok(None) => {
