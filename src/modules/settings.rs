@@ -225,8 +225,8 @@ impl SettingsUI {
                 let memory = calculate_7zip_memory_usage(&self.compression_settings.seven_zip_settings);
 
                 ui.horizontal(|ui| {
-                    ui.label(format!("Memory usage for Compressing: {}", memory.0));
-                    ui.label(format!("Memory usage for Decompressing: {}", memory.1));
+                    ui.label(format!("Memory usage for Compressing: {} MB.", memory.0));
+                    ui.label(format!("Memory usage for Decompressing: {} MB.", memory.1));
                 });
             }
             Archiver::WinRAR => {}
@@ -234,57 +234,68 @@ impl SettingsUI {
     }
 }
 
-fn calculate_7zip_memory_usage(settings: &SevenZipSettings) -> (u64, u64) {
+fn calculate_7zip_memory_usage(settings: &SevenZipSettings) -> (u128, u128) {
     if settings.compression_level == 0 {
         return (1, 1);
     }
-    let dictionary_size: u64 = settings.dictionary_size as u64 * 1024;
+
+    let bytes_ratio = 1024 * 1024;
+    // Convert the dictionary size to bytes
+    let dictionary_size = settings.dictionary_size as u128 * bytes_ratio;
+
     let mut size = 0;
-    if settings.compression_level == 9 {
-        size += 29 * 2_u64.pow(20);
+
+    if settings.archive_format == "7z" && settings.compression_level == 9 {
+        size += 29 * bytes_ratio;
     }
 
     let mut hs = dictionary_size - 1;
-    // Find the highest bit set in hs
-    let mut bit = 0;
-    while hs > 0 {
-        bit += 1;
-        hs /= 2;
-    }
-    // Set all bits below the highest bit
-    hs = 2_u64.pow(bit) - 1;
-    // Set the lower 16 bits
+    hs |= hs >> 1;
+    hs |= hs >> 2;
+    hs |= hs >> 4;
+    hs |= hs >> 8;
+    hs >>= 1;
     hs |= 0xFFFF;
-    if hs > 2_u64.pow(24) {
-        hs /= 2;
+    if hs > (1 << 24) {
+        hs >>= 1;
     }
     hs += 1;
-    let mut size1 = hs * 4;
-    size1 += dictionary_size * 4;
+
+    let mut size_1 = hs * 4;
+    size_1 += dictionary_size * 4;
     if settings.compression_level >= 5 {
-        size1 += dictionary_size * 4;
+        size_1 += dictionary_size * 4;
     }
-    size1 += 2 * 2_u64.pow(20);
+    size_1 += 2 * bytes_ratio;
 
-    let mut num_threads1 = 1;
+    let mut num_threads_1 = 1;
     if settings.number_of_cpu_threads > 1 && settings.compression_level >= 5 {
-        size1 += (2 + 4) * 2_u64.pow(20);
-        num_threads1 = 2;
+        size_1 += (2 * bytes_ratio) + (4 * bytes_ratio);
+        num_threads_1 = 2;
     }
 
-    let num_block_threads = settings.number_of_cpu_threads / num_threads1;
+    let num_block_threads = settings.number_of_cpu_threads / num_threads_1;
 
-    let mut chunk_size: u64 = dictionary_size * 2_u64.pow(2);
-    chunk_size = std::cmp::max(chunk_size, 2_u64.pow(20));
-    chunk_size = std::cmp::min(chunk_size, 2_u64.pow(28));
-    chunk_size = std::cmp::max(chunk_size, dictionary_size);
-    size1 += chunk_size * 2;
+    if num_block_threads == 1 {
+        size_1 += (dictionary_size * 3) / 2;
+    } else {
+        let mut chunk_size = dictionary_size * 4;
+        chunk_size = chunk_size.max(bytes_ratio);
+        chunk_size = chunk_size.min(256 * bytes_ratio);
+        chunk_size = chunk_size.max(dictionary_size);
+        size_1 += chunk_size * 2;
+    }
 
-    size += size1 * num_block_threads as u64;
+    // calculate the solid block size
+    let mut solid_block_size = dictionary_size;
+    if settings.compression_level == 9 {
+        solid_block_size *= num_block_threads as u128;
+    }
 
-    (
-        ((size) / 2_u64.pow(20)) as u64,
-        (((dictionary_size) + 2_u64.pow(20)) / 2_u64.pow(20)) as u64,
-    )
+    size += size_1 * num_block_threads as u128 + solid_block_size;
+
+    // Return the size for compression and decompression in MB
+    ((size + bytes_ratio - 1) / bytes_ratio,
+     (dictionary_size + (2 * bytes_ratio) + bytes_ratio - 1) / bytes_ratio)
 }
 
