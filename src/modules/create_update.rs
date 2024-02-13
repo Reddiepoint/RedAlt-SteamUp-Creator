@@ -6,7 +6,7 @@ use eframe::egui::{Button, Context, ScrollArea, TextEdit, Ui, Window};
 use egui_file::FileDialog;
 use crate::modules::app::TabBar;
 use crate::modules::changes::Changes;
-use crate::modules::compression::{Archiver, compress_files, CompressionSettings};
+use crate::modules::compression::{Archiver, CompressionSettings};
 use crate::modules::depot_downloader::{DepotDownloaderSettings, download_changes};
 
 
@@ -81,6 +81,7 @@ impl CreateUpdateUI {
         if !create_update_ui.changes.depot.is_empty() {
             create_update_ui.display_download_stuff(ui, depot_downloader_settings, compression_settings, tab_bar);
             create_update_ui.display_depot_downloader_input_window(ui, depot_downloader_settings);
+            ui.separator();
             create_update_ui.display_stdout(ui);
         }
     }
@@ -174,9 +175,7 @@ impl CreateUpdateUI {
                 self.child_process_running = true;
                 thread::spawn(move || {
                     let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender, path_sender.clone());
-                    if status.is_err() {
-                        let _ = path_sender.send(Err(status.unwrap_err()));
-                    }
+                    let _ = path_sender.send(status);
                 });
             }
         } else if depot_downloader_settings.username.is_empty() && ui.button("Login").clicked() {
@@ -186,8 +185,9 @@ impl CreateUpdateUI {
         if let Ok(status) = self.channels.depot_downloader_path_receiver.try_recv() {
             match status {
                 Ok(path) => {
-                    println!("Success");
+                    let _ = self.channels.output_sender.send("Depot Downloader exited.\n".to_string());
                     compression_settings.download_path = path;
+
                     if self.compress_files {
                         let archiver = compression_settings.archiver.clone();
                         let download_path = compression_settings.download_path.clone();
@@ -198,19 +198,19 @@ impl CreateUpdateUI {
                         let output_sender = self.channels.output_sender.clone();
                         let status_sender = self.channels.compression_status_sender.clone();
                         thread::spawn(move || {
-                            let result = match archiver {
-                                Archiver::SevenZip => seven_zip_settings.compress(download_path.clone(), input_window_opened_sender, input_receiver, output_sender, status_sender.clone()),
-                                Archiver::WinRAR => win_rar_settings.compress(download_path.clone(), input_window_opened_sender, input_receiver, output_sender, status_sender.clone()),
+                            let status = match archiver {
+                                Archiver::SevenZip => seven_zip_settings.compress(download_path.clone(), input_window_opened_sender, input_receiver, output_sender),
+                                Archiver::WinRAR => win_rar_settings.compress(download_path.clone(), input_window_opened_sender, input_receiver, output_sender),
                             };
 
-                            if result.is_err() {
-                                let _ = status_sender.send(Err(result.unwrap_err()));
-                            }
+                            let _ = status_sender.send(status);
                         });
                     }
                 }
                 Err(error) => {
                     eprintln!("Failed :( {}", error);
+                    let _ = self.channels.output_sender.send(format!("Depot Downloader exited unsuccessfully: {}.\n", error));
+
                     self.child_process_running = false;
                 }
             }

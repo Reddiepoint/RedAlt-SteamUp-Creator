@@ -73,7 +73,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
                         input_receiver: Receiver<String>,
                         output_sender: Sender<String>,
                         status_sender: Sender<std::io::Result<String>>)
-                        -> std::io::Result<()> {
+                        -> std::io::Result<String> {
     write_changes_to_file(changes)?;
     let _ = output_sender.clone().send("Starting Depot Downloader...\n".to_string());
     // Download path
@@ -110,85 +110,91 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         .args(["-max-downloads", &settings.max_downloads.to_string()]);
 
     let mut child = command.spawn()?;
+    let _ = output_sender.send("Depot Downloader started.\n".to_string());
 
     let patterns = [
         "STEAM GUARD! Please enter the auth code",
         "Enter account password"
     ];
 
-    if let Some(mut stdout) = child.stdout.take() {
-        let stdo_sender = output_sender.clone();
-        let input_window_opened_sender = input_window_opened_sender.clone();
-        thread::spawn(move || {
-            let mut buffer = [0; 1024];
-            loop {
-                match stdout.read(&mut buffer) {
-                    Ok(n) if n > 0 => {
-                        let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
+    let result = Arc::new(Mutex::new(Err(std::io::Error::new(std::io::ErrorKind::Other, "Unknown error"))));
 
-                        for pattern in patterns {
-                            if String::from_utf8_lossy(&buffer[..n]).contains(pattern) {
-                                input_window_opened_sender.send(true).unwrap();
+    thread::scope(|s| {
+        if let Some(mut stderr) = child.stderr.take() {
+            let stdo_sender = output_sender.clone();
+            let input_window_opened_sender = input_window_opened_sender.clone();
+            s.spawn(move || {
+                let mut buffer = [0; 1024];
+                loop {
+                    match stderr.read(&mut buffer) {
+                        Ok(n) if n > 0 => {
+                            let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
+
+                            for pattern in patterns {
+                                if String::from_utf8_lossy(&buffer[..n]).contains(pattern) {
+                                    input_window_opened_sender.send(true).unwrap();
+                                }
                             }
                         }
-                    }
-                    _ => break,
-                }
-            }
-        });
-    }
-
-    if let Some(mut stderr) = child.stderr.take() {
-        let stdo_sender = output_sender.clone();
-        let input_window_opened_sender = input_window_opened_sender.clone();
-        thread::spawn(move || {
-            let mut buffer = [0; 1024];
-            loop {
-                match stderr.read(&mut buffer) {
-                    Ok(n) if n > 0 => {
-                        let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
-
-                        for pattern in patterns {
-                            if String::from_utf8_lossy(&buffer[..n]).contains(pattern) {
-                                input_window_opened_sender.send(true).unwrap();
-                            }
-                        }
-                    }
-                    _ => break,
-                }
-            }
-        });
-    }
-
-    let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
-
-    thread::spawn(move || {
-        loop {
-            match child.try_wait() {
-                Ok(Some(_exit_status)) => {
-                    let _ = status_sender.send(Ok(path));
-                    let _ = output_sender.send("Depot Downloader exited.\n".to_string());
-                    break;
-                },
-                Ok(None) => {
-                    match input_receiver.try_recv() {
-                        Ok(code) => {
-                            let stdin = stdin.clone();
-                            let code = format!("{}\n", code);
-                            stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
-                            stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
-                        },
-                        Err(_) => {
-                            thread::sleep(std::time::Duration::from_millis(100));
-                        }
+                        _ => break,
                     }
                 }
-                Err(error) => {
-                    eprintln!("error: {}", error);
-                }
-            }
+            });
         }
+
+        if let Some(mut stdout) = child.stdout.take() {
+            let stdo_sender = output_sender.clone();
+            let input_window_opened_sender = input_window_opened_sender.clone();
+            s.spawn(move || {
+                let mut buffer = [0; 1024];
+                loop {
+                    match stdout.read(&mut buffer) {
+                        Ok(n) if n > 0 => {
+                            let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
+
+                            for pattern in patterns {
+                                if String::from_utf8_lossy(&buffer[..n]).contains(pattern) {
+                                    input_window_opened_sender.send(true).unwrap();
+                                }
+                            }
+                        }
+                        _ => break,
+                    }
+                }
+            });
+        }
+
+        let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
+        let result_clone = Arc::clone(&result);
+        s.spawn(move || {
+            loop {
+                match child.try_wait() {
+                    Ok(Some(_exit_status)) => {
+                        *result_clone.lock().unwrap() = Ok(path.clone());
+                        break;
+                    },
+                    Ok(None) => {
+                        match input_receiver.try_recv() {
+                            Ok(code) => {
+                                let stdin = stdin.clone();
+                                let code = format!("{}\n", code);
+                                stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
+                                stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
+                            },
+                            Err(_) => {
+                                thread::sleep(std::time::Duration::from_millis(100));
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("error: {}", error);
+                        *result_clone.lock().unwrap() = Err(error);
+                        break;
+                    }
+                }
+            }
+        });
     });
 
-    Ok(())
+    Arc::into_inner(result).unwrap().into_inner().unwrap()
 }
