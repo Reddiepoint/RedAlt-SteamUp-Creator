@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use winreg::enums::HKEY_LOCAL_MACHINE;
 use winreg::RegKey;
 use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
-use crate::modules::depot_downloader::OSType;
 
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub enum Archiver {

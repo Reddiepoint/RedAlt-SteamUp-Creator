@@ -15,7 +15,7 @@ pub struct CreateUpdateChannels {
     depot_downloader_input_window_opened_receiver: Receiver<bool>,
     depot_downloader_stdi_sender: Sender<String>,
     depot_downloader_stdi_receiver: Receiver<String>,
-    stdo_sender: Sender<String>,
+    stdout_sender: Sender<String>,
     stdo_receiver: Receiver<String>,
     depot_downloader_path_sender: Sender<std::io::Result<String>>,
     depot_downloader_path_receiver: Receiver<std::io::Result<String>>,
@@ -35,7 +35,7 @@ impl Default for CreateUpdateChannels {
             depot_downloader_input_window_opened_receiver: steam_guard_code_window_opened_receiver,
             depot_downloader_stdi_sender,
             depot_downloader_stdi_receiver,
-            stdo_sender,
+            stdout_sender: stdo_sender,
             stdo_receiver,
             depot_downloader_path_sender,
             depot_downloader_path_receiver,
@@ -170,7 +170,7 @@ impl CreateUpdateUI {
                 let sender = self.channels.steam_guard_code_window_opened_sender.clone();
                 let receiver = self.channels.depot_downloader_stdi_receiver.clone();
                 let path_sender = self.channels.depot_downloader_path_sender.clone();
-                let stdio_sender = self.channels.stdo_sender.clone();
+                let stdio_sender = self.channels.stdout_sender.clone();
                 self.child_process_running = true;
                 thread::spawn(move || {
                     let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender, path_sender.clone());
@@ -189,7 +189,7 @@ impl CreateUpdateUI {
                     println!("Success");
                     compression_settings.download_path = path;
                     if self.compress_files {
-                        compression_settings.compress_files(self.channels.stdo_sender.clone(), self.channels.compression_status_sender.clone());
+                        compression_settings.compress_files(self.channels.stdout_sender.clone(), self.channels.compression_status_sender.clone());
                     }
                 }
                 Err(error) => {
@@ -200,6 +200,14 @@ impl CreateUpdateUI {
         }
 
         if let Ok(status) = self.channels.compression_status_receiver.try_recv() {
+            match status {
+                Ok(_) => {
+                    let _ = self.channels.stdout_sender.send("\nFinished compressing files.\n".to_string());
+                }
+                Err(error) => {
+                    let _ = self.channels.stdout_sender.send(format!("\nFailed to compress files: {}.\n", error));
+                }
+            }
             self.child_process_running = false;
         }
     }
