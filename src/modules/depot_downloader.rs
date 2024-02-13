@@ -71,11 +71,11 @@ fn write_changes_to_file(changes: &Changes) -> std::io::Result<()> {
 pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
                         input_window_opened_sender: Sender<bool>,
                         input_receiver: Receiver<String>,
-                        stdo_sender: Sender<String>,
+                        output_sender: Sender<String>,
                         status_sender: Sender<std::io::Result<String>>)
                         -> std::io::Result<()> {
     write_changes_to_file(changes)?;
-    let _ = stdo_sender.clone().send("Starting Depot Downloader...\n".to_string());
+    let _ = output_sender.clone().send("Starting Depot Downloader...\n".to_string());
     // Download path
     let path = format!("./downloads/{} ({}) [Build {} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build);
     // Run Depot Downloader
@@ -117,7 +117,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
     ];
 
     if let Some(mut stdout) = child.stdout.take() {
-        let stdo_sender = stdo_sender.clone();
+        let stdo_sender = output_sender.clone();
         let input_window_opened_sender = input_window_opened_sender.clone();
         thread::spawn(move || {
             let mut buffer = [0; 1024];
@@ -139,7 +139,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
     }
 
     if let Some(mut stderr) = child.stderr.take() {
-        let stdo_sender = stdo_sender.clone();
+        let stdo_sender = output_sender.clone();
         let input_window_opened_sender = input_window_opened_sender.clone();
         thread::spawn(move || {
             let mut buffer = [0; 1024];
@@ -167,7 +167,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
             match child.try_wait() {
                 Ok(Some(_exit_status)) => {
                     let _ = status_sender.send(Ok(path));
-                    let _ = stdo_sender.send("Depot Downloader exited.\n".to_string());
+                    let _ = output_sender.send("Depot Downloader exited.\n".to_string());
                     break;
                 },
                 Ok(None) => {

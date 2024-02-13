@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::thread;
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Receiver, Sender};
 use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
 use winreg::enums::HKEY_LOCAL_MACHINE;
@@ -84,18 +84,24 @@ impl CompressionSettings {
         paths
     }
 
-    pub fn compress_files(&self, stdo_sender: Sender<String>, status_sender: Sender<std::io::Result<()>>) {
+    pub fn compress_files(&self,
+                          input_window_opened_sender: Sender<bool>,
+                          input_receiver: Receiver<String>,
+                          output_sender: Sender<String>,
+                          status_sender: Sender<std::io::Result<()>>) {
         let archiver = self.archiver.clone();
         let seven_zip_settings = self.seven_zip_settings.clone();
         let win_rar_settings = self.win_rar_settings.clone();
         let path = self.download_path.clone();
         thread::spawn(move || {
             let result = match archiver {
-                Archiver::SevenZip => seven_zip_settings.compress(path, stdo_sender.clone()),
-                Archiver::WinRAR => win_rar_settings.compress(path, stdo_sender.clone()),
+                Archiver::SevenZip => seven_zip_settings.compress(path, input_window_opened_sender, input_receiver, output_sender, status_sender.clone()),
+                Archiver::WinRAR => win_rar_settings.compress(path, input_window_opened_sender, input_receiver, output_sender, status_sender.clone()),
             };
 
-            let _ = status_sender.send(result);
+            if result.is_err() {
+                let _ = status_sender.send(Err(result.unwrap_err()));
+            }
         });
     }
 }

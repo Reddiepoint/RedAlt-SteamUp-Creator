@@ -1,8 +1,9 @@
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::sync::{Arc, Mutex};
 use std::thread;
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
 use crate::modules::compression::CompressionSettings;
 
@@ -49,13 +50,18 @@ impl Default for SevenZipSettings {
 }
 
 impl SevenZipSettings {
-    pub fn compress(&self, download_path: String, stdo_sender: Sender<String>) -> std::io::Result<()> {
-        let _ = stdo_sender.send("\nCompressing files with 7z...\n".to_string());
+    pub fn compress(&self, download_path: String,
+                    input_window_opened_sender: Sender<bool>,
+                    stdin_receiver: Receiver<String>,
+                    stdout_sender: Sender<String>,
+                    status_sender: Sender<std::io::Result<()>>) -> std::io::Result<()> {
+        let _ = stdout_sender.send("\nCompressing files with 7z...\n".to_string());
         let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
         let mut command = Command::new(archiver_path);
         let _ = std::fs::remove_dir_all(format!("{}/.DepotDownloader", download_path));
         let _ = std::fs::create_dir("./completed");
         command
+            .stdin(Stdio::piped())
             .stderr(Stdio::piped())
             .stdout(Stdio::piped())
             .arg("a")
@@ -78,7 +84,7 @@ impl SevenZipSettings {
         let mut child = command.spawn()?;
 
         if let Some(mut stdout) = child.stdout.take() {
-            let stdo_sender = stdo_sender.clone();
+            let stdo_sender = stdout_sender.clone();
             thread::spawn(move || {
                 let mut buffer = [0; 1024];
                 loop {
@@ -93,7 +99,7 @@ impl SevenZipSettings {
         }
 
         if let Some(mut stderr) = child.stderr.take() {
-            let stdo_sender = stdo_sender.clone();
+            let stdo_sender = stdout_sender.clone();
             thread::spawn(move || {
                 let mut buffer = [0; 1024];
                 loop {
@@ -107,7 +113,35 @@ impl SevenZipSettings {
             });
         }
 
-        let _ = child.wait();
+        let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
+
+        thread::spawn(move || {
+            loop {
+                match child.try_wait() {
+                    Ok(Some(_exit_status)) => {
+                        let _ = status_sender.send(Ok(()));
+                        break;
+                    },
+                    Ok(None) => {
+                        match stdin_receiver.try_recv() {
+                            Ok(code) => {
+                                let stdin = stdin.clone();
+                                let code = format!("{}\n", code);
+                                stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
+                                stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
+                            },
+                            Err(_) => {
+                                thread::sleep(std::time::Duration::from_millis(100));
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("error: {}", error);
+                    }
+                }
+            }
+        });
+
         Ok(())
     }
 }
@@ -149,21 +183,27 @@ impl Default for WinRARSettings {
 }
 
 impl WinRARSettings {
-    pub fn compress(&self, download_path: String, stdo_sender: Sender<String>) -> std::io::Result<()> {
+    pub fn compress(&self, download_path: String, input_window_opened_sender: Sender<bool>,
+                    stdin_receiver: Receiver<String>,
+                    stdo_sender: Sender<String>,
+                    status_sender: Sender<std::io::Result<()>>) -> std::io::Result<()> {
         let _ = stdo_sender.send("\nCompressing files with WinRAR...\n".to_string());
         let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
         let mut command = Command::new(archiver_path);
         let _ = std::fs::remove_dir_all(format!("{}/.DepotDownloader", download_path));
         let _ = std::fs::create_dir("./completed");
         command
+            .stdin(Stdio::piped())
             .stderr(Stdio::piped())
             .stdout(Stdio::piped())
             .arg("a")
-            .arg(format!("-af{}", self.archive_format))
             .arg(format!("-w{}\\completed", std::env::current_dir().unwrap().to_str().unwrap()))
             .arg(format!("-m{}", self.compression_level))
             .arg(format!("-md{}m", self.dictionary_size))
             .arg(format!("-mt{}", self.number_of_cpu_threads));
+        if archiver_path.contains("WinRAR.exe") {
+            command.arg(format!("-af{}", self.archive_format));
+        }
         if self.solid {
             command.arg(format!("-s{}", if self.split_size > 0 { "v-" } else { "" }));
         }
@@ -174,6 +214,7 @@ impl WinRARSettings {
             command.arg(format!("-p{}", self.password));
         }
         command
+            .arg("-ep1")
             .arg(format!(".\\completed\\{}.rar", download_path.split('/').last().unwrap()))
             .arg(download_path);
         println!("Command: {:?}", command);
@@ -209,7 +250,35 @@ impl WinRARSettings {
             });
         }
 
-        let _ = child.wait();
+        let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
+
+        thread::spawn(move || {
+            loop {
+                match child.try_wait() {
+                    Ok(Some(_exit_status)) => {
+                        let _ = status_sender.send(Ok(()));
+                        break;
+                    },
+                    Ok(None) => {
+                        match stdin_receiver.try_recv() {
+                            Ok(code) => {
+                                let stdin = stdin.clone();
+                                let code = format!("{}\n", code);
+                                stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
+                                stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
+                            },
+                            Err(_) => {
+                                thread::sleep(std::time::Duration::from_millis(100));
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("error: {}", error);
+                    }
+                }
+            }
+        });
+
         Ok(())
     }
 }
