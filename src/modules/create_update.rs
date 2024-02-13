@@ -11,12 +11,12 @@ use crate::modules::depot_downloader::{DepotDownloaderSettings, download_changes
 
 
 pub struct CreateUpdateChannels {
-    depot_downloader_code_window_opened_sender: Sender<bool>,
-    depot_downloader_input_window_opened_receiver: Receiver<bool>,
-    depot_downloader_stdin_sender: Sender<String>,
-    depot_downloader_stdin_receiver: Receiver<String>,
-    stdout_sender: Sender<String>,
-    stdout_receiver: Receiver<String>,
+    input_window_opened_sender: Sender<bool>,
+    input_window_opened_receiver: Receiver<bool>,
+    input_sender: Sender<String>,
+    input_receiver: Receiver<String>,
+    output_sender: Sender<String>,
+    output_receiver: Receiver<String>,
     depot_downloader_path_sender: Sender<std::io::Result<String>>,
     depot_downloader_path_receiver: Receiver<std::io::Result<String>>,
     compression_status_sender: Sender<std::io::Result<()>>,
@@ -25,18 +25,18 @@ pub struct CreateUpdateChannels {
 
 impl Default for CreateUpdateChannels {
     fn default() -> Self {
-        let (steam_guard_code_window_opened_sender, depot_downloader_input_window_opened_receiver) = crossbeam_channel::bounded(1);
-        let (depot_downloader_stdin_sender, depot_downloader_stdin_receiver) = crossbeam_channel::bounded(1);
-        let (stdout_sender, stdout_receiver) = crossbeam_channel::unbounded();
+        let (input_window_opened_sender, input_window_opened_receiver) = crossbeam_channel::bounded(1);
+        let (input_sender, input_receiver) = crossbeam_channel::bounded(1);
+        let (output_sender, output_receiver) = crossbeam_channel::unbounded();
         let (depot_downloader_path_sender, depot_downloader_path_receiver) = crossbeam_channel::bounded(1);
         let (compression_status_sender, compression_status_receiver) = crossbeam_channel::bounded(1);
         Self {
-            depot_downloader_code_window_opened_sender: steam_guard_code_window_opened_sender,
-            depot_downloader_input_window_opened_receiver,
-            depot_downloader_stdin_sender,
-            depot_downloader_stdin_receiver,
-            stdout_sender,
-            stdout_receiver,
+            input_window_opened_sender,
+            input_window_opened_receiver,
+            input_sender,
+            input_receiver,
+            output_sender,
+            output_receiver,
             depot_downloader_path_sender,
             depot_downloader_path_receiver,
             compression_status_sender,
@@ -167,10 +167,10 @@ impl CreateUpdateUI {
             if ui.add_enabled(!self.child_process_running, Button::new(format!("Download changes as {}", depot_downloader_settings.username))).clicked() {
                 let changes = self.changes.clone();
                 let depot_downloader_settings = depot_downloader_settings.clone();
-                let sender = self.channels.depot_downloader_code_window_opened_sender.clone();
-                let receiver = self.channels.depot_downloader_stdin_receiver.clone();
+                let sender = self.channels.input_window_opened_sender.clone();
+                let receiver = self.channels.input_receiver.clone();
                 let path_sender = self.channels.depot_downloader_path_sender.clone();
-                let stdio_sender = self.channels.stdout_sender.clone();
+                let stdio_sender = self.channels.output_sender.clone();
                 self.child_process_running = true;
                 thread::spawn(move || {
                     let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender, path_sender.clone());
@@ -189,9 +189,9 @@ impl CreateUpdateUI {
                     println!("Success");
                     compression_settings.download_path = path;
                     if self.compress_files {
-                        compression_settings.compress_files(self.channels.depot_downloader_code_window_opened_sender.clone(),
-                                                            self.channels.depot_downloader_stdin_receiver.clone(),
-                                                            self.channels.stdout_sender.clone(),
+                        compression_settings.compress_files(self.channels.input_window_opened_sender.clone(),
+                                                            self.channels.input_receiver.clone(),
+                                                            self.channels.output_sender.clone(),
                                                             self.channels.compression_status_sender.clone());
                     }
                 }
@@ -205,10 +205,10 @@ impl CreateUpdateUI {
         if let Ok(status) = self.channels.compression_status_receiver.try_recv() {
             match status {
                 Ok(_) => {
-                    let _ = self.channels.stdout_sender.send("\nFinished compressing files.\n".to_string());
+                    let _ = self.channels.output_sender.send("\nFinished compressing files.\n".to_string());
                 }
                 Err(error) => {
-                    let _ = self.channels.stdout_sender.send(format!("\nFailed to compress files: {}.\n", error));
+                    let _ = self.channels.output_sender.send(format!("\nFailed to compress files: {}.\n", error));
                 }
             }
             self.child_process_running = false;
@@ -216,7 +216,7 @@ impl CreateUpdateUI {
     }
 
     fn display_depot_downloader_input_window(&mut self, ui: &mut Ui, depot_downloader_settings: &mut DepotDownloaderSettings) {
-        if let Ok(open) = self.channels.depot_downloader_input_window_opened_receiver.try_recv() {
+        if let Ok(open) = self.channels.input_window_opened_receiver.try_recv() {
             depot_downloader_settings.depot_downloader_input_window_opened = open;
             println!("Received");
         }
@@ -229,7 +229,7 @@ impl CreateUpdateUI {
                 });
 
                 open = if ui.button("Submit").clicked() {
-                    self.channels.depot_downloader_stdin_sender.send(depot_downloader_settings.input.clone()).unwrap();
+                    self.channels.input_sender.send(depot_downloader_settings.input.clone()).unwrap();
                     false
                 } else {
                     open
@@ -243,7 +243,7 @@ impl CreateUpdateUI {
         let mut output = self.stdout.clone();
         ScrollArea::vertical().id_source("Depot Downloader Output").max_height(ui.available_height() / 3.0).show(ui, |ui| {
             ui.add(TextEdit::multiline(&mut output).desired_width(ui.available_width()).cursor_at_end(true));
-            while let Ok(output) = self.channels.stdout_receiver.try_recv() {
+            while let Ok(output) = self.channels.output_receiver.try_recv() {
                 self.stdout += &output;
                 ui.scroll_to_cursor(None);
                 ui.ctx().request_repaint();
