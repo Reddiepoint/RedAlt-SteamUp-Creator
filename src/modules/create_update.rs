@@ -6,7 +6,7 @@ use eframe::egui::{Button, Context, ScrollArea, TextEdit, Ui, Window};
 use egui_file::FileDialog;
 use crate::modules::app::TabBar;
 use crate::modules::changes::Changes;
-use crate::modules::compression::CompressionSettings;
+use crate::modules::compression::{Archiver, compress_files, CompressionSettings};
 use crate::modules::depot_downloader::{DepotDownloaderSettings, download_changes};
 
 
@@ -189,10 +189,24 @@ impl CreateUpdateUI {
                     println!("Success");
                     compression_settings.download_path = path;
                     if self.compress_files {
-                        compression_settings.compress_files(self.channels.input_window_opened_sender.clone(),
-                                                            self.channels.input_receiver.clone(),
-                                                            self.channels.output_sender.clone(),
-                                                            self.channels.compression_status_sender.clone());
+                        let archiver = compression_settings.archiver.clone();
+                        let download_path = compression_settings.download_path.clone();
+                        let seven_zip_settings = compression_settings.seven_zip_settings.clone();
+                        let win_rar_settings = compression_settings.win_rar_settings.clone();
+                        let input_window_opened_sender = self.channels.input_window_opened_sender.clone();
+                        let input_receiver = self.channels.input_receiver.clone();
+                        let output_sender = self.channels.output_sender.clone();
+                        let status_sender = self.channels.compression_status_sender.clone();
+                        thread::spawn(move || {
+                            let result = match archiver {
+                                Archiver::SevenZip => seven_zip_settings.compress(download_path.clone(), input_window_opened_sender, input_receiver, output_sender, status_sender.clone()),
+                                Archiver::WinRAR => win_rar_settings.compress(download_path.clone(), input_window_opened_sender, input_receiver, output_sender, status_sender.clone()),
+                            };
+
+                            if result.is_err() {
+                                let _ = status_sender.send(Err(result.unwrap_err()));
+                            }
+                        });
                     }
                 }
                 Err(error) => {

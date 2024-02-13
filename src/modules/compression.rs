@@ -83,25 +83,15 @@ impl CompressionSettings {
         }
         paths
     }
-
-    pub fn compress_files(&self,
-                          input_window_opened_sender: Sender<bool>,
-                          input_receiver: Receiver<String>,
-                          output_sender: Sender<String>,
-                          status_sender: Sender<std::io::Result<()>>) {
-        let archiver = self.archiver.clone();
-        let seven_zip_settings = self.seven_zip_settings.clone();
-        let win_rar_settings = self.win_rar_settings.clone();
-        let path = self.download_path.clone();
-        thread::spawn(move || {
-            let result = match archiver {
-                Archiver::SevenZip => seven_zip_settings.compress(path, input_window_opened_sender, input_receiver, output_sender, status_sender.clone()),
-                Archiver::WinRAR => win_rar_settings.compress(path, input_window_opened_sender, input_receiver, output_sender, status_sender.clone()),
-            };
-
-            if result.is_err() {
-                let _ = status_sender.send(Err(result.unwrap_err()));
-            }
-        });
-    }
 }
+
+// pub fn compress_files(archiver: Archiver,
+//                       download_path: String,
+//                       seven_zip_settings: SevenZipSettings,
+//                       win_rar_settings: WinRARSettings,
+//                       input_window_opened_sender: Sender<bool>,
+//                       input_receiver: Receiver<String>,
+//                       output_sender: Sender<String>,
+//                       status_sender: Sender<std::io::Result<()>>) {
+//
+// }
