@@ -90,7 +90,7 @@ impl CompressionSettings {
         let seven_zip_settings = self.seven_zip_settings.clone();
         let win_rar_settings = self.win_rar_settings.clone();
         let path = self.download_path.clone();
-        thread::spawn(move || {
+        let _ = thread::spawn(move || {
             let result = match archiver {
                 Archiver::SevenZip => seven_zip_settings.compress(path, stdo_sender.clone()),
                 Archiver::WinRAR => win_rar_settings.compress(path, stdo_sender.clone()),
@@ -104,7 +104,7 @@ impl CompressionSettings {
                     let _ = stdo_sender.send(format!("\nFailed to compress files: {}.\n", error));
                 }
             }
-        });
+        }).join();
     }
 }
 
