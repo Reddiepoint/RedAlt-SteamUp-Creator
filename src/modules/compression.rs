@@ -70,7 +70,7 @@ impl CompressionSettings {
         let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
         let subkey = r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths";
 
-        let keys = [(format!("{}\\7zFM.exe", subkey), "7z.exe"), (format!("{}\\WinRAR.exe", subkey), "\\Rar.exe")];
+        let keys = [(format!("{}\\7zFM.exe", subkey), "7z.exe"), (format!("{}\\WinRAR.exe", subkey), "\\WinRAR.exe")];
         for (key, file) in keys {
             if let Ok(key) = hklm.open_subkey(key) {
                 if let Ok(path) = key.get_value("Path") {
@@ -82,7 +82,6 @@ impl CompressionSettings {
                 }
             }
         }
-        println!("{:?}", paths);
         paths
     }
 

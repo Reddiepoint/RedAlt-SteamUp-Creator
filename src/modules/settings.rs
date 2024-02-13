@@ -4,7 +4,7 @@ use eframe::egui::{ComboBox, Context, Slider, TextEdit, Ui};
 use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
 use crate::modules::compression::{Archiver, CompressionSettings};
-use crate::modules::compression_settings::SevenZipSettings;
+use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
 use crate::modules::depot_downloader::{DepotDownloaderSettings, OSType};
 
 #[derive(Default, Deserialize, Serialize)]
@@ -25,6 +25,7 @@ impl SettingsUI {
             self.read_settings = true;
             let settings: SettingsUI = serde_json::from_reader(&mut file).unwrap_or_default();
             self.depot_downloader_settings = settings.depot_downloader_settings;
+            self.compression_settings = settings.compression_settings;
         }
     }
 
@@ -32,7 +33,7 @@ impl SettingsUI {
         let mut username = String::new();
         username = self.depot_downloader_settings.username.clone();
         if !self.depot_downloader_settings.remember_credentials {
-            self.depot_downloader_settings.username = "".to_string();
+            self.depot_downloader_settings.username = String::new();
         }
         let _ = std::fs::write("settings.json", serde_json::to_string_pretty(&self).unwrap());
         self.depot_downloader_settings.username = username;
@@ -148,7 +149,9 @@ impl SettingsUI {
             Archiver::SevenZip => {
                 self.display_7zip_settings(ui);
             }
-            Archiver::WinRAR => {}
+            Archiver::WinRAR => {
+                self.display_winrar_settings(ui);
+            }
         }
     }
 
@@ -218,11 +221,11 @@ impl SettingsUI {
 
         ui.horizontal(|ui| {
             ui.label("Split size:");
-            match self.compression_settings.seven_zip_settings.solid_block_size_unit.as_str() {
+            match self.compression_settings.seven_zip_settings.split_size_unit.as_str() {
                 "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=100)),
-                _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=65535))
+                _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=65534))
             };
-            ComboBox::from_id_source("Split Size Unit").selected_text(self.compression_settings.seven_zip_settings.solid_block_size_unit.to_string())
+            ComboBox::from_id_source("Split Size Unit").selected_text(self.compression_settings.seven_zip_settings.split_size_unit.to_string())
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.split_size_unit, "m".to_string(), "MB");
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.split_size_unit, "g".to_string(), "GB");
@@ -238,7 +241,60 @@ impl SettingsUI {
     }
 
     fn display_winrar_settings(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label("Password");
+            ui.text_edit_singleline(&mut self.compression_settings.win_rar_settings.password);
+        });
 
+        ui.horizontal(|ui| {
+            ui.label("Archive format:");
+            ComboBox::from_id_source("Format").selected_text(self.compression_settings.win_rar_settings.archive_format.to_string())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.archive_format, "rar".to_string(), "RAR");
+                });
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Compression method:");
+            ComboBox::from_id_source("Compression Method").selected_text(format!("{}", self.compression_settings.win_rar_settings.compression_level))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 0, "0 - Store");
+                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 1, "1 - Fastest");
+                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 2, "2 - Fast");
+                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 3, "3 - Normal");
+                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 4, "4 - Good");
+                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 5, "5 - Best");
+                });
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Dictionary size (MB):");
+            ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.dictionary_size, 1..=1024));
+            // Round to nearest power of 2
+            self.compression_settings.win_rar_settings.dictionary_size = self.compression_settings.win_rar_settings.dictionary_size.next_power_of_two();
+        });
+
+        ui.checkbox(&mut self.compression_settings.win_rar_settings.solid, "Solid");
+
+        ui.horizontal(|ui| {
+            ui.label("Split size:");
+            match self.compression_settings.win_rar_settings.split_size_unit.as_str() {
+                "g" => ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.split_size, 0..=100)),
+                _ => ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.split_size, 0..=65534))
+            };
+            ComboBox::from_id_source("Split Size Unit").selected_text(self.compression_settings.win_rar_settings.split_size_unit.to_string())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.split_size_unit, "m".to_string(), "MB");
+                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.split_size_unit, "g".to_string(), "GB");
+                });
+        });
+
+        let memory = calculate_winrar_memory_usage(&self.compression_settings.win_rar_settings);
+
+        ui.horizontal(|ui| {
+            ui.label(format!("Memory usage for Compressing: {} MB.", memory.0));
+            ui.label(format!("Memory usage for Decompressing: {} MB.", memory.1));
+        });
     }
 }
 
@@ -305,5 +361,9 @@ fn calculate_7zip_memory_usage(settings: &SevenZipSettings) -> (u128, u128) {
     // Return the size for compression and decompression in MB
     ((size + bytes_ratio - 1) / bytes_ratio,
      (dictionary_size + (2 * bytes_ratio) + bytes_ratio - 1) / bytes_ratio)
+}
+
+fn calculate_winrar_memory_usage(settings: &WinRARSettings) -> (u16, u16) {
+    (settings.dictionary_size * 6, settings.dictionary_size)
 }
 
