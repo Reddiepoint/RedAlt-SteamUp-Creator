@@ -206,7 +206,7 @@ impl SettingsUI {
                 "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=64)),
                 _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=65536))
             };
-            ComboBox::from_id_source("Solid Block Size Unit").selected_text(self.compression_settings.seven_zip_settings.solid_block_size_unit.to_string())
+            ComboBox::from_id_source("Solid Block Size Unit").selected_text(format!("{}B", self.compression_settings.seven_zip_settings.solid_block_size_unit.to_uppercase()))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.solid_block_size_unit, "m".to_string(), "MB");
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.solid_block_size_unit, "g".to_string(), "GB");
@@ -215,7 +215,7 @@ impl SettingsUI {
 
         ui.horizontal(|ui| {
             ui.label("CPU Threads:");
-            let max_cpu_threads = std::thread::available_parallelism().unwrap().get() as u8 * 2;
+            let max_cpu_threads = std::thread::available_parallelism().unwrap().get() as u8;
             ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.number_of_cpu_threads, 1..=max_cpu_threads));
         });
 
@@ -225,7 +225,7 @@ impl SettingsUI {
                 "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=100)),
                 _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=65534))
             };
-            ComboBox::from_id_source("Split Size Unit").selected_text(self.compression_settings.seven_zip_settings.split_size_unit.to_string())
+            ComboBox::from_id_source("Split Size Unit").selected_text(format!("{}B", self.compression_settings.seven_zip_settings.split_size_unit.to_uppercase()))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.split_size_unit, "m".to_string(), "MB");
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.split_size_unit, "g".to_string(), "GB");
@@ -277,12 +277,18 @@ impl SettingsUI {
         ui.checkbox(&mut self.compression_settings.win_rar_settings.solid, "Solid");
 
         ui.horizontal(|ui| {
+            ui.label("CPU Threads:");
+            let max_cpu_threads = std::thread::available_parallelism().unwrap().get() as u8;
+            ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.number_of_cpu_threads, 1..=max_cpu_threads));
+        });
+
+        ui.horizontal(|ui| {
             ui.label("Split size:");
             match self.compression_settings.win_rar_settings.split_size_unit.as_str() {
                 "g" => ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.split_size, 0..=100)),
                 _ => ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.split_size, 0..=65534))
             };
-            ComboBox::from_id_source("Split Size Unit").selected_text(self.compression_settings.win_rar_settings.split_size_unit.to_string())
+            ComboBox::from_id_source("Split Size Unit").selected_text(format!("{}B", self.compression_settings.win_rar_settings.split_size_unit.to_uppercase()))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.win_rar_settings.split_size_unit, "m".to_string(), "MB");
                     ui.selectable_value(&mut self.compression_settings.win_rar_settings.split_size_unit, "g".to_string(), "GB");

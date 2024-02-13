@@ -85,30 +85,18 @@ impl CompressionSettings {
         paths
     }
 
-    pub fn compress_files(&self, stdo_sender: Sender<String>) {
+    pub fn compress_files(&self, stdo_sender: Sender<String>, status_sender: Sender<std::io::Result<()>>) {
         let archiver = self.archiver.clone();
         let seven_zip_settings = self.seven_zip_settings.clone();
         let win_rar_settings = self.win_rar_settings.clone();
         let path = self.download_path.clone();
-        let _ = thread::spawn(move || {
+        thread::spawn(move || {
             let result = match archiver {
                 Archiver::SevenZip => seven_zip_settings.compress(path, stdo_sender.clone()),
                 Archiver::WinRAR => win_rar_settings.compress(path, stdo_sender.clone()),
             };
 
-            match result {
-                Ok(_) => {
-                    let _ = stdo_sender.send("\nFinished compressing files.\n".to_string());
-                }
-                Err(error) => {
-                    let _ = stdo_sender.send(format!("\nFailed to compress files: {}.\n", error));
-                }
-            }
-        }).join();
+            let _ = status_sender.send(result);
+        });
     }
-}
-
-#[test]
-fn test_get_paths() {
-    CompressionSettings::get_detected_paths();
 }

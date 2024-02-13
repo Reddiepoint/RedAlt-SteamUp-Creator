@@ -19,6 +19,8 @@ pub struct CreateUpdateChannels {
     stdo_receiver: Receiver<String>,
     depot_downloader_path_sender: Sender<std::io::Result<String>>,
     depot_downloader_path_receiver: Receiver<std::io::Result<String>>,
+    compression_status_sender: Sender<std::io::Result<()>>,
+    compression_status_receiver: Receiver<std::io::Result<()>>,
 }
 
 impl Default for CreateUpdateChannels {
@@ -27,6 +29,7 @@ impl Default for CreateUpdateChannels {
         let (depot_downloader_stdi_sender, depot_downloader_stdi_receiver) = crossbeam_channel::bounded(1);
         let (stdo_sender, stdo_receiver) = crossbeam_channel::unbounded();
         let (depot_downloader_path_sender, depot_downloader_path_receiver) = crossbeam_channel::bounded(1);
+        let (compression_status_sender, compression_status_receiver) = crossbeam_channel::bounded(1);
         Self {
             steam_guard_code_window_opened_sender,
             depot_downloader_input_window_opened_receiver: steam_guard_code_window_opened_receiver,
@@ -35,21 +38,38 @@ impl Default for CreateUpdateChannels {
             stdo_sender,
             stdo_receiver,
             depot_downloader_path_sender,
-            depot_downloader_path_receiver
+            depot_downloader_path_receiver,
+            compression_status_sender,
+            compression_status_receiver,
         }
     }
 }
 
-#[derive(Default)]
+
 pub struct CreateUpdateUI {
     channels: CreateUpdateChannels,
     open_file_dialog: Option<FileDialog>,
     changes_json_file: Option<PathBuf>,
     changes: Changes,
+    compress_files: bool,
     stdout: String,
     child_process_running: bool,
 }
 
+impl Default for CreateUpdateUI {
+    fn default() -> Self {
+        Self {
+            channels: CreateUpdateChannels::default(),
+            open_file_dialog: None,
+            changes_json_file: None,
+            changes: Changes::default(),
+            compress_files: true,
+            stdout: String::new(),
+            child_process_running: false,
+        }
+    }
+
+}
 impl CreateUpdateUI {
     pub fn display(ctx: &Context, ui: &mut Ui, create_update_ui: &mut CreateUpdateUI,
                    depot_downloader_settings: &mut DepotDownloaderSettings, compression_settings: &mut CompressionSettings,
@@ -142,6 +162,8 @@ impl CreateUpdateUI {
     fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &DepotDownloaderSettings,
                               compression_settings: &mut CompressionSettings, tab_bar: &mut TabBar) {
         if !depot_downloader_settings.username.is_empty() && (!depot_downloader_settings.password.is_empty() || depot_downloader_settings.remember_credentials) {
+            ui.checkbox(&mut self.compress_files, "Compress files after downloading");
+
             if ui.add_enabled(!self.child_process_running, Button::new(format!("Download changes as {}", depot_downloader_settings.username))).clicked() {
                 let changes = self.changes.clone();
                 let depot_downloader_settings = depot_downloader_settings.clone();
@@ -166,14 +188,19 @@ impl CreateUpdateUI {
                 Ok(path) => {
                     println!("Success");
                     compression_settings.download_path = path;
-                    compression_settings.compress_files(self.channels.stdo_sender.clone());
-                    self.child_process_running = false;
+                    if self.compress_files {
+                        compression_settings.compress_files(self.channels.stdo_sender.clone(), self.channels.compression_status_sender.clone());
+                    }
                 }
                 Err(error) => {
                     eprintln!("Failed :( {}", error);
                     self.child_process_running = false;
                 }
             }
+        }
+
+        if let Ok(status) = self.channels.compression_status_receiver.try_recv() {
+            self.child_process_running = false;
         }
     }
 

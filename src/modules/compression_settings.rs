@@ -121,6 +121,7 @@ pub struct WinRARSettings {
     pub compression_level: u8,
     pub dictionary_size: u16,
     pub solid: bool,
+    pub number_of_cpu_threads: u8,
     pub split_size: u16,
     pub split_size_unit: String
 }
@@ -140,6 +141,7 @@ impl Default for WinRARSettings {
             compression_level: 5,
             dictionary_size: 512,
             solid: true,
+            number_of_cpu_threads: thread::available_parallelism().unwrap().get() as u8,
             split_size: 0,
             split_size_unit: "g".to_string(),
         }
@@ -160,7 +162,8 @@ impl WinRARSettings {
             .arg(format!("-af{}", self.archive_format))
             .arg(format!("-w{}\\completed", std::env::current_dir().unwrap().to_str().unwrap()))
             .arg(format!("-m{}", self.compression_level))
-            .arg(format!("-md{}m", self.dictionary_size));
+            .arg(format!("-md{}m", self.dictionary_size))
+            .arg(format!("-mt{}", self.number_of_cpu_threads));
         if self.solid {
             command.arg(format!("-s{}", if self.split_size > 0 { "v-" } else { "" }));
         }
