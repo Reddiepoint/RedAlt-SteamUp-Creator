@@ -174,7 +174,7 @@ impl CreateUpdateUI {
                 let stdio_sender = self.channels.output_sender.clone();
                 self.child_process_running = true;
                 thread::spawn(move || {
-                    let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender, path_sender.clone());
+                    let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender);
                     let _ = path_sender.send(status);
                 });
             }
@@ -255,7 +255,7 @@ impl CreateUpdateUI {
 
     fn display_stdout(&mut self, ui: &mut Ui) {
         let mut output = self.stdout.clone();
-        ScrollArea::vertical().id_source("Depot Downloader Output").max_height(ui.available_height() / 3.0).show(ui, |ui| {
+        ScrollArea::vertical().id_source("Standard Output").max_height(ui.available_height() / 3.0).show(ui, |ui| {
             ui.add(TextEdit::multiline(&mut output).desired_width(ui.available_width()).cursor_at_end(true));
             while let Ok(output) = self.channels.output_receiver.try_recv() {
                 self.stdout += &output;

@@ -1,7 +1,5 @@
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
-use std::thread;
-use crossbeam_channel::{Receiver, Sender};
 use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
 use winreg::enums::HKEY_LOCAL_MACHINE;

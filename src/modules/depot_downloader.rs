@@ -71,8 +71,7 @@ fn write_changes_to_file(changes: &Changes) -> std::io::Result<()> {
 pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
                         input_window_opened_sender: Sender<bool>,
                         input_receiver: Receiver<String>,
-                        output_sender: Sender<String>,
-                        status_sender: Sender<std::io::Result<String>>)
+                        output_sender: Sender<String>)
                         -> std::io::Result<String> {
     write_changes_to_file(changes)?;
     let _ = output_sender.clone().send("Starting Depot Downloader...\n".to_string());
@@ -82,11 +81,10 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
     let mut command = Command::new("./DepotDownloader.exe");
     command
         .stdin(Stdio::piped())
-        .stderr(Stdio::piped())
         .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest])
-        .args(["-dir",
-            &path])
+        .args(["-dir", &path])
         .args(["-filelist", "files.txt"]);
 
     match settings.remember_credentials {
@@ -110,7 +108,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         .args(["-max-downloads", &settings.max_downloads.to_string()]);
 
     let mut child = command.spawn()?;
-    let _ = output_sender.send("Depot Downloader started.\n".to_string());
+    // let _ = output_sender.send("Depot Downloader started.\n".to_string());
 
     let patterns = [
         "STEAM GUARD! Please enter the auth code",

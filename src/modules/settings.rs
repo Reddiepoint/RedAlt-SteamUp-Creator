@@ -30,8 +30,7 @@ impl SettingsUI {
     }
 
     fn set_settings(&mut self) {
-        let mut username = String::new();
-        username = self.depot_downloader_settings.username.clone();
+        let username = self.depot_downloader_settings.username.clone();
         if !self.depot_downloader_settings.remember_credentials {
             self.depot_downloader_settings.username = String::new();
         }

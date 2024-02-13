@@ -61,8 +61,8 @@ impl SevenZipSettings {
         let _ = std::fs::create_dir("./completed");
         command
             .stdin(Stdio::piped())
-            .stderr(Stdio::piped())
             .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
             .arg("a")
             .arg(format!("-w{}\\completed", std::env::current_dir().unwrap().to_str().unwrap()))
             .arg(format!("-mx{}", self.compression_level))
@@ -200,8 +200,8 @@ impl WinRARSettings {
         let _ = std::fs::create_dir("./completed");
         command
             .stdin(Stdio::piped())
-            .stderr(Stdio::piped())
             .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
             .arg("a")
             .arg(format!("-w{}\\completed", std::env::current_dir().unwrap().to_str().unwrap()))
             .arg(format!("-m{}", self.compression_level))
