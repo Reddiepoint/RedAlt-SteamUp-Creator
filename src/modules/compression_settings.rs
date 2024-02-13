@@ -28,16 +28,9 @@ impl Default for SevenZipSettings {
         Self {
             path: {
                 let paths = CompressionSettings::get_detected_paths();
-                let mut archiver_path = String::new();
-                for path in paths.into_iter().flatten() {
-                    if path.contains("7z.exe") {
-                        archiver_path = path;
-                    }
-                }
-                if !archiver_path.is_empty() {
-                    Some(archiver_path.into())
-                } else {
-                    None
+                match paths.first() {
+                    Some(Some(path)) => Some(path.into()),
+                    _ => None,
                 }
             },
             password: String::new(),
@@ -129,16 +122,9 @@ impl Default for WinRARSettings {
         Self {
             path: {
                 let paths = CompressionSettings::get_detected_paths();
-                let mut archiver_path = String::new();
-                for path in paths.into_iter().flatten() {
-                    if path.contains("WinRAR.exe") {
-                        archiver_path = path;
-                    }
-                }
-                if !archiver_path.is_empty() {
-                    Some(archiver_path.into())
-                } else {
-                    None
+                match paths.get(1) {
+                    Some(Some(path)) => Some(path.into()),
+                    _ => None,
                 }
             }
         }

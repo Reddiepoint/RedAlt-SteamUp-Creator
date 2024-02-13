@@ -146,91 +146,99 @@ impl SettingsUI {
         });
         match self.compression_settings.archiver {
             Archiver::SevenZip => {
-                ui.horizontal(|ui| {
-                    ui.label("Password");
-                    ui.text_edit_singleline(&mut self.compression_settings.seven_zip_settings.password);
-                });
-
-                ui.horizontal(|ui| {
-                    ui.label("Archive format:");
-                    ComboBox::from_id_source("Format").selected_text(self.compression_settings.seven_zip_settings.archive_format.to_string())
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut self.compression_settings.seven_zip_settings.archive_format, "7z".to_string(), "7z");
-                        });
-                });
-
-                ui.horizontal(|ui| {
-                    ui.label("Compression level:");
-                    ComboBox::from_id_source("Compression Level").selected_text(format!("{}", self.compression_settings.seven_zip_settings.compression_level))
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 0, "0 - Store");
-                            ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 1, "1 - Fastest");
-                            ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 3, "3 - Fast");
-                            ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 5, "5 - Normal");
-                            ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 7, "7 - Maximum");
-                            ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 9, "9 - Ultra");
-                        });
-                });
-
-                ui.horizontal(|ui| {
-                    ui.label("Compression method:");
-                    ComboBox::from_id_source("Compression Method").selected_text(self.compression_settings.seven_zip_settings.compression_method.to_string())
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_method, "LZMA2".to_string(), "7ZMA2");
-                        });
-                });
-
-                ui.horizontal(|ui| {
-                    ui.label("Dictionary size (MB):");
-                    ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.dictionary_size, 1..=2048));
-                });
-
-                ui.horizontal(|ui| {
-                    ui.label("Word size:");
-                    ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.word_size, 5..=273));
-                });
-
-                ui.horizontal(|ui| {
-                    ui.label("Solid block size:");
-                    match self.compression_settings.seven_zip_settings.solid_block_size_unit.as_str() {
-                        "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=64)),
-                        _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=65536))
-                    };
-                    ComboBox::from_id_source("Solid Block Size Unit").selected_text(self.compression_settings.seven_zip_settings.solid_block_size_unit.to_string())
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut self.compression_settings.seven_zip_settings.solid_block_size_unit, "m".to_string(), "MB");
-                            ui.selectable_value(&mut self.compression_settings.seven_zip_settings.solid_block_size_unit, "g".to_string(), "GB");
-                        });
-                });
-
-                ui.horizontal(|ui| {
-                    ui.label("CPU Threads:");
-                    let max_cpu_threads = std::thread::available_parallelism().unwrap().get() as u8 * 2;
-                    ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.number_of_cpu_threads, 1..=max_cpu_threads));
-                });
-
-                ui.horizontal(|ui| {
-                    ui.label("Split size:");
-                    match self.compression_settings.seven_zip_settings.solid_block_size_unit.as_str() {
-                        "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=100)),
-                        _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=65535))
-                    };
-                    ComboBox::from_id_source("Split Size Unit").selected_text(self.compression_settings.seven_zip_settings.solid_block_size_unit.to_string())
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut self.compression_settings.seven_zip_settings.split_size_unit, "m".to_string(), "MB");
-                            ui.selectable_value(&mut self.compression_settings.seven_zip_settings.split_size_unit, "g".to_string(), "GB");
-                        });
-                });
-
-                let memory = calculate_7zip_memory_usage(&self.compression_settings.seven_zip_settings);
-
-                ui.horizontal(|ui| {
-                    ui.label(format!("Memory usage for Compressing: {} MB.", memory.0));
-                    ui.label(format!("Memory usage for Decompressing: {} MB.", memory.1));
-                });
+                self.display_7zip_settings(ui);
             }
             Archiver::WinRAR => {}
         }
+    }
+
+    fn display_7zip_settings(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label("Password");
+            ui.text_edit_singleline(&mut self.compression_settings.seven_zip_settings.password);
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Archive format:");
+            ComboBox::from_id_source("Format").selected_text(self.compression_settings.seven_zip_settings.archive_format.to_string())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.archive_format, "7z".to_string(), "7z");
+                });
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Compression level:");
+            ComboBox::from_id_source("Compression Level").selected_text(format!("{}", self.compression_settings.seven_zip_settings.compression_level))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 0, "0 - Store");
+                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 1, "1 - Fastest");
+                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 3, "3 - Fast");
+                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 5, "5 - Normal");
+                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 7, "7 - Maximum");
+                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 9, "9 - Ultra");
+                });
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Compression method:");
+            ComboBox::from_id_source("Compression Method").selected_text(self.compression_settings.seven_zip_settings.compression_method.to_string())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_method, "LZMA2".to_string(), "7ZMA2");
+                });
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Dictionary size (MB):");
+            ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.dictionary_size, 1..=2048));
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Word size:");
+            ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.word_size, 5..=273));
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Solid block size:");
+            match self.compression_settings.seven_zip_settings.solid_block_size_unit.as_str() {
+                "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=64)),
+                _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=65536))
+            };
+            ComboBox::from_id_source("Solid Block Size Unit").selected_text(self.compression_settings.seven_zip_settings.solid_block_size_unit.to_string())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.solid_block_size_unit, "m".to_string(), "MB");
+                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.solid_block_size_unit, "g".to_string(), "GB");
+                });
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("CPU Threads:");
+            let max_cpu_threads = std::thread::available_parallelism().unwrap().get() as u8 * 2;
+            ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.number_of_cpu_threads, 1..=max_cpu_threads));
+        });
+
+        ui.horizontal(|ui| {
+            ui.label("Split size:");
+            match self.compression_settings.seven_zip_settings.solid_block_size_unit.as_str() {
+                "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=100)),
+                _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=65535))
+            };
+            ComboBox::from_id_source("Split Size Unit").selected_text(self.compression_settings.seven_zip_settings.solid_block_size_unit.to_string())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.split_size_unit, "m".to_string(), "MB");
+                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.split_size_unit, "g".to_string(), "GB");
+                });
+        });
+
+        let memory = calculate_7zip_memory_usage(&self.compression_settings.seven_zip_settings);
+
+        ui.horizontal(|ui| {
+            ui.label(format!("Memory usage for Compressing: {} MB.", memory.0));
+            ui.label(format!("Memory usage for Decompressing: {} MB.", memory.1));
+        });
+    }
+
+    fn display_winrar_settings(&mut self, ui: &mut Ui) {
+
     }
 }
 
