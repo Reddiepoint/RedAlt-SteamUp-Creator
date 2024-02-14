@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.4.1
+// @version     0.4.2
 // @author      Reddiepoint
 // @description
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/steamdb_changelist_grabber.user.js
@@ -91,8 +91,8 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
                 }
 
                 GM_setValue("changesObject", JSON.stringify(existingChangelogObject));
-                observer.disconnect();
                 window.close();
+                observer.disconnect();
             }
         });
 
@@ -283,9 +283,8 @@ function getChanges() {
     const repeat = setInterval(() => {
         if (!GM_getValue("gettingChangelogs", false)) {
             GM_setValue("readyToDownload", true);
-            clearInterval(repeat);
-            console.log("Downloading changes");
             location.reload();
+            clearInterval(repeat);
         }
     }, 1000); // Adjust the interval duration as needed
 
@@ -306,10 +305,7 @@ function getBuildIDs() {
 }
 
 function getChangelog(depotID, buildID) {
-    console.log(depotID);
-    console.log(buildID);
     const url = document.querySelector(`a[href*="/patchnotes/${buildID}"]`).href;
-    console.log(url);
     const tab = GM_openInTab(url, {
         active: true
     });
