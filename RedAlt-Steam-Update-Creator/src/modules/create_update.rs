@@ -195,17 +195,22 @@ impl CreateUpdateUI {
 
         if let Ok(status) = self.channels.depot_downloader_path_receiver.try_recv() {
             match status {
-                Ok(path) => {
+                Ok(download_path) => {
                     let _ = self.channels.output_sender.send("Depot Downloader exited.\n".to_string());
-                    compression_settings.download_path = path.clone();
+                    compression_settings.download_path = download_path.clone();
 
                     // Copy JSON changes file to download path
                     if !self.download_entire_depot {
                         if let Some(file) = &self.changes_json_file {
-                            let path = path + "/.RedAlt-Steam-Installer/";
-                            let _ = std::fs::create_dir(path.clone());
-                            let changes_path = path + file.file_name().unwrap().to_str().unwrap();
-                            let _ = std::fs::copy(file, changes_path).unwrap();
+                            let installer_path = download_path + "/.RedAlt-Steam-Installer/";
+                            let _ = std::fs::create_dir(&installer_path);
+                            let path = installer_path.clone() + file.file_name().unwrap().to_str().unwrap();
+                            let _ = std::fs::copy(file, path).unwrap();
+                            let path = installer_path + "RedAlt-Steam-Update-Installer.exe";
+                            if let Err(error) = std::fs::copy("./RedAlt-Steam-Update-Installer.exe", path) {
+                                let _ = self.channels.output_sender.send(format!("Error copying RedAlt-Steam-Update-Installer.exe: {}", error));
+                            };
+
                         }
                     }
 
@@ -226,6 +231,8 @@ impl CreateUpdateUI {
 
                             let _ = status_sender.send(status);
                         });
+                    } else {
+                        self.child_process_running = false;
                     }
                 }
                 Err(error) => {
@@ -281,7 +288,7 @@ impl CreateUpdateUI {
             while let Ok(output) = self.channels.output_receiver.try_recv() {
                 self.stdout += &output;
                 ui.scroll_to_cursor(None);
-                ui.ctx().request_repaint();
+                // ui.ctx().request_repaint();
             }
         });
     }
