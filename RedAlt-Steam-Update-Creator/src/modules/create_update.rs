@@ -90,12 +90,18 @@ impl CreateUpdateUI {
 
     fn display_file_dialog(&mut self, ctx: &Context, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            match &self.changes_json_file {
-                None => ui.label("Choose the JSON file:"),
-                Some(path) => ui.label(format!("Using JSON file: {}", path.display())),
+            let button_text = match &self.changes_json_file {
+                None => {
+                    ui.label("Choose the JSON file:");
+                    "Open file"
+                },
+                Some(path) => {
+                    ui.label(format!("Using JSON file: {}", path.display()));
+                    "Change file"
+                },
             };
 
-            if ui.button("Open file").clicked() {
+            if ui.button(button_text).clicked() {
                 // Show only files with the extension "json".
                 let filter = Box::new({
                     let ext = Some(OsStr::new("json"));
@@ -188,7 +194,6 @@ impl CreateUpdateUI {
                     ui.spinner();
                 }
             });
-
         } else if depot_downloader_settings.username.is_empty() && ui.button("Login").clicked() {
             *tab_bar = TabBar::Settings;
         }
@@ -210,7 +215,6 @@ impl CreateUpdateUI {
                             if let Err(error) = std::fs::copy("./RedAlt-Steam-Update-Installer.exe", path) {
                                 let _ = self.channels.output_sender.send(format!("Error copying RedAlt-Steam-Update-Installer.exe: {}", error));
                             };
-
                         }
                     }
 
