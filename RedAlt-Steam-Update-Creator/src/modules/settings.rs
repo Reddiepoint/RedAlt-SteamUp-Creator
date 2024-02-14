@@ -38,7 +38,7 @@ impl SettingsUI {
         self.depot_downloader_settings.username = username;
     }
 
-    pub fn display(ctx: &Context, ui: &mut Ui, settings_ui: &mut SettingsUI) {
+    pub fn display(_ctx: &Context, ui: &mut Ui, settings_ui: &mut SettingsUI) {
         settings_ui.display_settings_buttons(ui);
         settings_ui.display_depot_downloader_settings(ui);
         ui.separator();

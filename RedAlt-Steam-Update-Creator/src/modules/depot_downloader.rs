@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter};
+use std::fmt::Display;
 use std::io::{Read, Write};
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};

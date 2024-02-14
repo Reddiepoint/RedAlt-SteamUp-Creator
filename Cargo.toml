@@ -1,3 +1,3 @@
 [workspace]
-members = ["RedAlt-Steam-Update-Creator"]
-#resolver = "2"
+members = ["RedAlt-Steam-Update-Creator", "RedAlt-Steam-Update-Installer"]
+resolver = "2"
