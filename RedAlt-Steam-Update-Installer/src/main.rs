@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::env::set_current_dir;
 use std::io::{stdin, stdout, Write};
 use crate::modules::settings::Settings;
 
@@ -7,10 +6,7 @@ mod modules;
 
 
 fn main() {
-    // Debug Only
-    let _ = set_current_dir("F:\\RedAlt-Steam-Update-Creator\\completed\\2660970 (2660971) [Build 13438231 to 13447799]\\.RedAlt-Steam-Installer");
-    println!("Hello, world!\n\
-    This is the companion installer for RedAlt-Steam-Update-Creator.\n\
+    println!("This is the companion installer for RedAlt-Steam-Update-Creator.\n\
     Type \"help\" to get started.");
     let mut settings = Settings::default();
     println!("\n{}", settings);
