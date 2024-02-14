@@ -202,7 +202,7 @@ impl CreateUpdateUI {
                     // Copy JSON changes file to download path
                     if !self.download_entire_depot {
                         if let Some(file) = &self.changes_json_file {
-                            let path = path + "/RedAlt-Steam-Installer/";
+                            let path = path + "/.RedAlt-Steam-Installer/";
                             let _ = std::fs::create_dir(path.clone());
                             let changes_path = path + file.file_name().unwrap().to_str().unwrap();
                             let _ = std::fs::copy(file, changes_path).unwrap();

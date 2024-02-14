@@ -58,7 +58,7 @@ impl SevenZipSettings {
         let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
         let mut command = Command::new(archiver_path);
         let _ = std::fs::remove_dir_all(format!("{}/.DepotDownloader", download_path));
-        let _ = std::fs::create_dir("./completed");
+        let _ = std::fs::create_dir("./Completed");
         command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -197,7 +197,7 @@ impl WinRARSettings {
         let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
         let mut command = Command::new(archiver_path);
         let _ = std::fs::remove_dir_all(format!("{}/.DepotDownloader", download_path));
-        let _ = std::fs::create_dir("./completed");
+        let _ = std::fs::create_dir("./Completed");
         command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())

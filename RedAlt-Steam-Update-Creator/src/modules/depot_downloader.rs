@@ -56,7 +56,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
     write_changes_to_file(changes)?;
     let _ = output_sender.clone().send("Starting Depot Downloader...\n".to_string());
     // Download path
-    let path = format!("./downloads/{} ({}) [Build {} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build);
+    let path = format!("./Downloads/{} ({}) [Build {} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build);
     // Run Depot Downloader
     let mut command = Command::new("./DepotDownloader.exe");
     command
