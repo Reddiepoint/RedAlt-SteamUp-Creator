@@ -51,6 +51,7 @@ pub struct CreateUpdateUI {
     open_file_dialog: Option<FileDialog>,
     changes_json_file: Option<PathBuf>,
     changes: Changes,
+    download_entire_depot: bool,
     compress_files: bool,
     stdout: String,
     child_process_running: bool,
@@ -63,6 +64,7 @@ impl Default for CreateUpdateUI {
             open_file_dialog: None,
             changes_json_file: None,
             changes: Changes::default(),
+            download_entire_depot: false,
             compress_files: true,
             stdout: String::new(),
             child_process_running: false,
@@ -163,6 +165,7 @@ impl CreateUpdateUI {
     fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &DepotDownloaderSettings,
                               compression_settings: &mut CompressionSettings, tab_bar: &mut TabBar) {
         if !depot_downloader_settings.username.is_empty() && (!depot_downloader_settings.password.is_empty() || depot_downloader_settings.remember_credentials) {
+            ui.checkbox(&mut self.download_entire_depot, "Ignore changes and download entire depot");
             ui.checkbox(&mut self.compress_files, "Compress files after downloading");
 
             if ui.add_enabled(!self.child_process_running, Button::new(format!("Download changes as {}", depot_downloader_settings.username))).clicked() {
@@ -172,9 +175,10 @@ impl CreateUpdateUI {
                 let receiver = self.channels.input_receiver.clone();
                 let path_sender = self.channels.depot_downloader_path_sender.clone();
                 let stdio_sender = self.channels.output_sender.clone();
+                let download_entire_depot = self.download_entire_depot;
                 self.child_process_running = true;
                 thread::spawn(move || {
-                    let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender);
+                    let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender, download_entire_depot);
                     let _ = path_sender.send(status);
                 });
             }

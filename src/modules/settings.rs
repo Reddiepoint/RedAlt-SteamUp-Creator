@@ -5,7 +5,7 @@ use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
 use crate::modules::compression::{Archiver, CompressionSettings};
 use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
-use crate::modules::depot_downloader::{DepotDownloaderSettings, OSType};
+use crate::modules::depot_downloader::DepotDownloaderSettings;
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct SettingsUI {
@@ -68,20 +68,10 @@ impl SettingsUI {
             ui.add(TextEdit::singleline(&mut self.depot_downloader_settings.password)
                 .password(true));
         });
+
         ui.checkbox(&mut self.depot_downloader_settings.remember_credentials,
                     "Remember credentials (Requires login with Depot Downloader at least once. \
                     Subsequent logins require the username only.)");
-
-        ui.horizontal(|ui| {
-            ui.label("Download files for OS:");
-            ComboBox::from_id_source("OS").selected_text(format!("{}", self.depot_downloader_settings.os))
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.depot_downloader_settings.os, OSType::Windows, "Windows");
-                    ui.selectable_value(&mut self.depot_downloader_settings.os, OSType::Linux, "Linux");
-                    ui.selectable_value(&mut self.depot_downloader_settings.os, OSType::Mac, "Mac");
-                    ui.selectable_value(&mut self.depot_downloader_settings.os, OSType::Current, "Current OS");
-                });
-        });
 
         ui.horizontal(|ui| {
             ui.label("Max number of server connections:");

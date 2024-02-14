@@ -8,25 +8,6 @@ use serde::{Deserialize, Serialize};
 use crate::modules::changes::Changes;
 
 
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
-pub enum OSType {
-    Windows,
-    Linux,
-    Mac,
-    Current
-}
-
-impl Display for OSType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            OSType::Windows => "Windows",
-            OSType::Linux => "Linux",
-            OSType::Mac => "Mac",
-            OSType::Current => "Current OS",
-        })
-    }
-}
-
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(default)]
 pub struct DepotDownloaderSettings {
@@ -34,7 +15,6 @@ pub struct DepotDownloaderSettings {
     pub username: String,
     #[serde(skip)]
     pub password: String,
-    pub os: OSType,
     pub max_servers: u8,
     pub max_downloads: u8,
     // Used by app
@@ -50,7 +30,6 @@ impl Default for DepotDownloaderSettings {
         Self {
             username: String::new(),
             password: String::new(),
-            os: OSType::Current,
             max_servers: 20,
             max_downloads: 8,
             remember_credentials: true,
@@ -71,7 +50,8 @@ fn write_changes_to_file(changes: &Changes) -> std::io::Result<()> {
 pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
                         input_window_opened_sender: Sender<bool>,
                         input_receiver: Receiver<String>,
-                        output_sender: Sender<String>)
+                        output_sender: Sender<String>,
+                        download_entire_depot: bool)
                         -> std::io::Result<String> {
     write_changes_to_file(changes)?;
     let _ = output_sender.clone().send("Starting Depot Downloader...\n".to_string());
@@ -84,8 +64,11 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest])
-        .args(["-dir", &path])
-        .args(["-filelist", "files.txt"]);
+        .args(["-dir", &path]);
+
+    if !download_entire_depot {
+        command.args(["-filelist", "files.txt"]);
+    }
 
     match settings.remember_credentials {
         true => if !settings.password.is_empty() {
@@ -95,13 +78,6 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
         },
         false => command.args(["-username", &settings.username, "-password", &settings.password])
     };
-
-    match settings.os {
-        OSType::Windows => { command.args(["-os", "windows"]); },
-        OSType::Linux => { command.args(["-os", "linux"]); },
-        OSType::Mac => { command.args(["-os", "macos"]); },
-        OSType::Current => {}
-    }
 
     command
         .args(["-max-servers", &settings.max_servers.to_string()])
