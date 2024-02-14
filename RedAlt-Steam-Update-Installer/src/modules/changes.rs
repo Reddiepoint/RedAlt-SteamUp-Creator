@@ -2,13 +2,18 @@ use serde::Deserialize;
 
 #[derive(Clone, Default, Deserialize)]
 pub struct Changes {
+    #[serde(default)]
     pub app: String,
+    #[serde(default)]
     pub depot: String,
+    #[serde(default)]
     pub initial_build: String,
+    #[serde(default)]
     pub final_build: String,
     pub added: Vec<String>,
     pub removed: Vec<String>,
     pub modified: Vec<String>,
+    #[serde(default)]
     pub manifest: String
 }
 
