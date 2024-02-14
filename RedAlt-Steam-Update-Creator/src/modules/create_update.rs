@@ -168,20 +168,27 @@ impl CreateUpdateUI {
             ui.checkbox(&mut self.download_entire_depot, "Ignore changes and download entire depot");
             ui.checkbox(&mut self.compress_files, "Compress files after downloading");
 
-            if ui.add_enabled(!self.child_process_running, Button::new(format!("Download changes as {}", depot_downloader_settings.username))).clicked() {
-                let changes = self.changes.clone();
-                let depot_downloader_settings = depot_downloader_settings.clone();
-                let sender = self.channels.input_window_opened_sender.clone();
-                let receiver = self.channels.input_receiver.clone();
-                let path_sender = self.channels.depot_downloader_path_sender.clone();
-                let stdio_sender = self.channels.output_sender.clone();
-                let download_entire_depot = self.download_entire_depot;
-                self.child_process_running = true;
-                thread::spawn(move || {
-                    let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender, download_entire_depot);
-                    let _ = path_sender.send(status);
-                });
-            }
+            ui.horizontal(|ui| {
+                if ui.add_enabled(!self.child_process_running, Button::new(format!("Download changes as {}", depot_downloader_settings.username))).clicked() {
+                    let changes = self.changes.clone();
+                    let depot_downloader_settings = depot_downloader_settings.clone();
+                    let sender = self.channels.input_window_opened_sender.clone();
+                    let receiver = self.channels.input_receiver.clone();
+                    let path_sender = self.channels.depot_downloader_path_sender.clone();
+                    let stdio_sender = self.channels.output_sender.clone();
+                    let download_entire_depot = self.download_entire_depot;
+                    self.child_process_running = true;
+                    thread::spawn(move || {
+                        let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender, download_entire_depot);
+                        let _ = path_sender.send(status);
+                    });
+                }
+
+                if self.child_process_running {
+                    ui.spinner();
+                }
+            });
+
         } else if depot_downloader_settings.username.is_empty() && ui.button("Login").clicked() {
             *tab_bar = TabBar::Settings;
         }
@@ -190,8 +197,13 @@ impl CreateUpdateUI {
             match status {
                 Ok(path) => {
                     let _ = self.channels.output_sender.send("Depot Downloader exited.\n".to_string());
-                    compression_settings.download_path = path;
+                    compression_settings.download_path = path.clone();
 
+                    // Copy JSON changes file to download path
+                    if let Some(file) = &self.changes_json_file {
+                        let changes_path = path + file.file_name().unwrap().to_str().unwrap();
+                        let _ = std::fs::copy(file, changes_path).unwrap();
+                    }
                     if self.compress_files {
                         let archiver = compression_settings.archiver.clone();
                         let download_path = compression_settings.download_path.clone();
@@ -259,7 +271,7 @@ impl CreateUpdateUI {
 
     fn display_stdout(&mut self, ui: &mut Ui) {
         let mut output = self.stdout.clone();
-        ScrollArea::vertical().id_source("Standard Output").max_height(ui.available_height() / 3.0).show(ui, |ui| {
+        ScrollArea::vertical().id_source("Standard Output").max_height(ui.available_height() * 2.0 / 3.0).show(ui, |ui| {
             ui.add(TextEdit::multiline(&mut output).desired_width(ui.available_width()).cursor_at_end(true));
             while let Ok(output) = self.channels.output_receiver.try_recv() {
                 self.stdout += &output;
