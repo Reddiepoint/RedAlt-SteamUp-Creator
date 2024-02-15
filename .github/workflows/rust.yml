@@ -25,14 +25,20 @@ jobs:
       - name: Build
         run: cargo build --all --release
 
-      - name: Zip executable
-        run: Compress-Archive -Path target/release/RedAlt-Steam-Update-Creator.exe -DestinationPath RedAlt-Steam-Update-Creator.zip
+      - name: Install 7zip
+        run: choco install 7zip
+
+      - name: zip
+        run: 7z a target/release/RedAlt-Steam-Update-Creator.zip target/release/RedAlt-Steam-Update-Creator.exe
+
+#      - name: Zip executable
+#        run: Compress-Archive -Path target/release/RedAlt-Steam-Update-Creator.exe -DestinationPath RedAlt-Steam-Update-Creator.zip
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: RedAlt-Steam-Update-Creator.zip
+          files: target/release/RedAlt-Steam-Update-Creator.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
