@@ -1,12 +1,12 @@
+use crate::modules::compression::CompressionSettings;
+use crossbeam_channel::{Receiver, Sender};
+use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use crossbeam_channel::{Receiver, Sender};
-use serde::{Deserialize, Serialize};
-use crate::modules::compression::CompressionSettings;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct SevenZipSettings {
@@ -22,7 +22,7 @@ pub struct SevenZipSettings {
     pub solid_block_size_unit: String,
     pub number_of_cpu_threads: u8,
     pub split_size: u16,
-    pub split_size_unit: String
+    pub split_size_unit: String,
 }
 
 impl Default for SevenZipSettings {
@@ -51,10 +51,13 @@ impl Default for SevenZipSettings {
 }
 
 impl SevenZipSettings {
-    pub fn compress(&self, download_path: String,
-                    input_window_opened_sender: Sender<bool>,
-                    stdin_receiver: Receiver<String>,
-                    stdout_sender: Sender<String>) -> std::io::Result<()> {
+    pub fn compress(
+        &self,
+        download_path: String,
+        input_window_opened_sender: Sender<bool>,
+        stdin_receiver: Receiver<String>,
+        stdout_sender: Sender<String>,
+    ) -> std::io::Result<()> {
         let _ = stdout_sender.send("\nCompressing files with 7-Zip...\n".to_string());
         let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
         let mut command = Command::new(archiver_path);
@@ -121,31 +124,29 @@ impl SevenZipSettings {
 
             let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
             let result_clone = Arc::clone(&result);
-            s.spawn(move || {
-                loop {
-                    match child.try_wait() {
-                        Ok(Some(_exit_status)) => {
-                            *result_clone.lock().unwrap() = Ok(());
-                            break;
-                        },
-                        Ok(None) => {
-                            match stdin_receiver.try_recv() {
-                                Ok(code) => {
-                                    let stdin = stdin.clone();
-                                    let code = format!("{}\n", code);
-                                    stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
-                                    stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
-                                },
-                                Err(_) => {
-                                    thread::sleep(std::time::Duration::from_millis(100));
-                                }
+            s.spawn(move || loop {
+                match child.try_wait() {
+                    Ok(Some(_exit_status)) => {
+                        *result_clone.lock().unwrap() = Ok(());
+                        break;
+                    },
+                    Ok(None) => {
+                        match stdin_receiver.try_recv() {
+                            Ok(code) => {
+                                let stdin = stdin.clone();
+                                let code = format!("{}\n", code);
+                                stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
+                                stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
+                            },
+                            Err(_) => {
+                                thread::sleep(std::time::Duration::from_millis(100));
                             }
                         }
-                        Err(error) => {
-                            eprintln!("error: {}", error);
-                            *result_clone.lock().unwrap() = Err(error);
-                            break;
-                        }
+                    }
+                    Err(error) => {
+                        eprintln!("error: {}", error);
+                        *result_clone.lock().unwrap() = Err(error);
+                        break;
                     }
                 }
             });
@@ -166,7 +167,7 @@ pub struct WinRARSettings {
     pub solid: bool,
     pub number_of_cpu_threads: u8,
     pub split_size: u16,
-    pub split_size_unit: String
+    pub split_size_unit: String,
 }
 
 impl Default for WinRARSettings {
@@ -192,9 +193,13 @@ impl Default for WinRARSettings {
 }
 
 impl WinRARSettings {
-    pub fn compress(&self, download_path: String, input_window_opened_sender: Sender<bool>,
-                    stdin_receiver: Receiver<String>,
-                    stdo_sender: Sender<String>) -> std::io::Result<()> {
+    pub fn compress(
+        &self,
+        download_path: String,
+        input_window_opened_sender: Sender<bool>,
+        stdin_receiver: Receiver<String>,
+        stdo_sender: Sender<String>,
+    ) -> std::io::Result<()> {
         let _ = stdo_sender.send("\nCompressing files with WinRAR...\n".to_string());
         let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
         let mut command = Command::new(archiver_path);
@@ -266,31 +271,29 @@ impl WinRARSettings {
 
             let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
             let result_clone = Arc::clone(&result);
-            s.spawn(move || {
-                loop {
-                    match child.try_wait() {
-                        Ok(Some(_exit_status)) => {
-                            *result_clone.lock().unwrap() = Ok(());
-                            break;
-                        },
-                        Ok(None) => {
-                            match stdin_receiver.try_recv() {
-                                Ok(code) => {
-                                    let stdin = stdin.clone();
-                                    let code = format!("{}\n", code);
-                                    stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
-                                    stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
-                                },
-                                Err(_) => {
-                                    thread::sleep(std::time::Duration::from_millis(100));
-                                }
+            s.spawn(move || loop {
+                match child.try_wait() {
+                    Ok(Some(_exit_status)) => {
+                        *result_clone.lock().unwrap() = Ok(());
+                        break;
+                    },
+                    Ok(None) => {
+                        match stdin_receiver.try_recv() {
+                            Ok(code) => {
+                                let stdin = stdin.clone();
+                                let code = format!("{}\n", code);
+                                stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
+                                stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
+                            },
+                            Err(_) => {
+                                thread::sleep(std::time::Duration::from_millis(100));
                             }
                         }
-                        Err(error) => {
-                            eprintln!("error: {}", error);
-                            *result_clone.lock().unwrap() = Err(error);
-                            break;
-                        }
+                    }
+                    Err(error) => {
+                        eprintln!("error: {}", error);
+                        *result_clone.lock().unwrap() = Err(error);
+                        break;
                     }
                 }
             });

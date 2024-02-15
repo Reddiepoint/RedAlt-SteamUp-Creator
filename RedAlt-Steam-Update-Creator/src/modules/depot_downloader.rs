@@ -1,13 +1,12 @@
+use crate::modules::changes::Changes;
+use crossbeam_channel::{Receiver, Sender};
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::io::{Read, Write};
 use std::os::windows::process::CommandExt;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use crossbeam_channel::{Receiver, Sender};
-use serde::{Deserialize, Serialize};
-use crate::modules::changes::Changes;
-
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(default)]
@@ -48,16 +47,21 @@ fn write_changes_to_file(changes: &Changes) -> std::io::Result<()> {
     Ok(())
 }
 
-pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
-                        input_window_opened_sender: Sender<bool>,
-                        input_receiver: Receiver<String>,
-                        output_sender: Sender<String>,
-                        download_entire_depot: bool)
-                        -> std::io::Result<String> {
+pub fn download_changes(
+    changes: &Changes,
+    settings: &DepotDownloaderSettings,
+    input_window_opened_sender: Sender<bool>,
+    input_receiver: Receiver<String>,
+    output_sender: Sender<String>,
+    download_entire_depot: bool,
+) -> std::io::Result<String> {
     write_changes_to_file(changes)?;
     let _ = output_sender.clone().send("Starting Depot Downloader...\n".to_string());
     // Download path
-    let path = format!("./Downloads/{} ({}) [Build {} to {}]", changes.app, changes.depot, changes.initial_build, changes.final_build);
+    let path = format!(
+        "./Downloads/{} ({}) [Build {} to {}]",
+        changes.app, changes.depot, changes.initial_build, changes.final_build
+    );
     // Run Depot Downloader
     let mut command = Command::new("./DepotDownloader.exe");
     command
@@ -90,7 +94,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
 
     let patterns = [
         "STEAM GUARD! Please enter the auth code",
-        "Enter account password"
+        "Enter account password",
     ];
 
     let result = Arc::new(Mutex::new(Err(std::io::Error::new(std::io::ErrorKind::Other, "Unknown error"))));
@@ -142,31 +146,29 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
 
         let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
         let result_clone = Arc::clone(&result);
-        s.spawn(move || {
-            loop {
-                match child.try_wait() {
-                    Ok(Some(_exit_status)) => {
-                        *result_clone.lock().unwrap() = Ok(path.clone());
-                        break;
-                    },
-                    Ok(None) => {
-                        match input_receiver.try_recv() {
-                            Ok(code) => {
-                                let stdin = stdin.clone();
-                                let code = format!("{}\n", code);
-                                stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
-                                stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
-                            },
-                            Err(_) => {
-                                thread::sleep(std::time::Duration::from_millis(100));
-                            }
+        s.spawn(move || loop {
+            match child.try_wait() {
+                Ok(Some(_exit_status)) => {
+                    *result_clone.lock().unwrap() = Ok(path.clone());
+                    break;
+                },
+                Ok(None) => {
+                    match input_receiver.try_recv() {
+                        Ok(code) => {
+                            let stdin = stdin.clone();
+                            let code = format!("{}\n", code);
+                            stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
+                            stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
+                        },
+                        Err(_) => {
+                            thread::sleep(std::time::Duration::from_millis(100));
                         }
                     }
-                    Err(error) => {
-                        eprintln!("error: {}", error);
-                        *result_clone.lock().unwrap() = Err(error);
-                        break;
-                    }
+                }
+                Err(error) => {
+                    eprintln!("error: {}", error);
+                    *result_clone.lock().unwrap() = Err(error);
+                    break;
                 }
             }
         });

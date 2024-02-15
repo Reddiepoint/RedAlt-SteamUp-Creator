@@ -1,7 +1,7 @@
-use eframe::{App, Frame};
-use eframe::egui::{CentralPanel, Context, TopBottomPanel};
 use crate::modules::create_update::CreateUpdateUI;
 use crate::modules::settings::SettingsUI;
+use eframe::egui::{CentralPanel, Context, TopBottomPanel};
+use eframe::{App, Frame};
 
 #[derive(Default, PartialEq)]
 pub enum TabBar {

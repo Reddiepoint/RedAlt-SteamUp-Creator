@@ -1,11 +1,11 @@
-use std::ffi::OsStr;
-use std::path::Path;
-use eframe::egui::{ComboBox, Context, Slider, TextEdit, Ui};
-use egui_file::FileDialog;
-use serde::{Deserialize, Serialize};
 use crate::modules::compression::{Archiver, CompressionSettings};
 use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
 use crate::modules::depot_downloader::DepotDownloaderSettings;
+use eframe::egui::{ComboBox, Context, Slider, TextEdit, Ui};
+use egui_file::FileDialog;
+use serde::{Deserialize, Serialize};
+use std::ffi::OsStr;
+use std::path::Path;
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct SettingsUI {
@@ -354,11 +354,12 @@ fn calculate_7zip_memory_usage(settings: &SevenZipSettings) -> (u128, u128) {
     size += size_1 * num_block_threads as u128 + solid_block_size;
 
     // Return the size for compression and decompression in MB
-    ((size + bytes_ratio - 1) / bytes_ratio,
-     (dictionary_size + (2 * bytes_ratio) + bytes_ratio - 1) / bytes_ratio)
+    (
+        (size + bytes_ratio - 1) / bytes_ratio,
+        (dictionary_size + (2 * bytes_ratio) + bytes_ratio - 1) / bytes_ratio,
+    )
 }
 
 fn calculate_winrar_memory_usage(settings: &WinRARSettings) -> (u16, u16) {
     (settings.dictionary_size * 6, settings.dictionary_size)
 }
-
