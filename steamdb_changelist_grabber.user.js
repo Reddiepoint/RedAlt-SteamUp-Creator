@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.4.2
+// @version     0.5.0
 // @author      Reddiepoint
 // @description
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/steamdb_changelist_grabber.user.js
@@ -32,6 +32,7 @@ function myFunction() {
     GM_setValue("changesObject", null);
     GM_setValue("readyToDownload", false);
     GM_setValue("depotID", null);
+    GM_setValue("manifestID", null);
     GM_setValue("gettingChangelogs", false);
     // Your code here
     console.log("Reset!");
@@ -119,7 +120,7 @@ if (GM_getValue("readyToDownload", false)) {
     GM_setValue("readyToDownload", false)
 }
 
-(function () {
+if (window.location.href.includes("steamdb.info/app/")) {
     // Add modal CSS
     const css = `
     .modal {
@@ -234,12 +235,14 @@ if (GM_getValue("readyToDownload", false)) {
     };
 
     document.getElementById("getChangesBtn").addEventListener("click", getChanges);
-})();
+}
 
 
 function getChanges() {
     const getChangesBtn = document.querySelector("#getChangesBtn");
-    getChangesBtn.insertAdjacentHTML('afterend', '<p>Getting changes... This page will refresh automatically to download the changes.</p>');
+
+    const appID = window.location.href.match(/(\d+)/)[0];
+
     let buildID1 = document.getElementById("buildID1").value;
     let buildID2 = document.getElementById("buildID2").value;
 
@@ -252,11 +255,28 @@ function getChanges() {
         buildID2 = temp;
 
     }
+
     const depotID = document.getElementById("depotID").value;
-    const appID =  window.location.href.match(/(\d+)/)[0];
     const builds = getBuildIDs().reverse();
     // Get slice of builds from buildID1 + 1 to buildID2
     let intermediaryBuilds = builds.slice(builds.indexOf(buildID1) + 1, builds.indexOf(buildID2) + 1);
+
+    // Build and Depot Check
+    if (!depotID) {
+        getChangesBtn.insertAdjacentHTML('afterend', "<p>Please specify a depot ID.</p>");
+        setTimeout(() => {
+            getChangesBtn.nextElementSibling.remove();
+        }, 2000);
+        return;
+    } else if (!buildID1 || !buildID2) {
+        getChangesBtn.insertAdjacentHTML('afterend', "<p>Invalid Build ID.</p>");
+
+        setTimeout(() => {
+            getChangesBtn.nextElementSibling.remove();
+        }, 2000);
+        return;
+    }
+
 
     GM_setValue("depotID", depotID);
     GM_setValue("readyToDownload", false);
@@ -270,6 +290,10 @@ function getChanges() {
         modified: []
     }
     GM_setValue("changesObject", JSON.stringify(changesObject));
+
+
+    getChangesBtn.insertAdjacentHTML('afterend', '<p>Getting changes... This page will refresh automatically to download the changes.</p>');
+
     // Get changelog for each build
     for (let i = 0; i < intermediaryBuilds.length; i++) {
         const repeat = setInterval(() => {
@@ -287,8 +311,6 @@ function getChanges() {
             clearInterval(repeat);
         }
     }, 1000); // Adjust the interval duration as needed
-
-
 }
 
 function getBuildIDs() {
@@ -313,4 +335,3 @@ function getChangelog(depotID, buildID) {
         GM_setValue("gettingChangelogs", false)
     }
 }
-
