@@ -192,8 +192,8 @@ impl SettingsUI {
         ui.horizontal(|ui| {
             ui.label("Solid block size:");
             match self.compression_settings.seven_zip_settings.solid_block_size_unit.as_str() {
-                "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=64)),
-                _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=65536))
+                "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=100)),
+                _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=10000))
             };
             ComboBox::from_id_source("Solid Block Size Unit").selected_text(format!("{}B", self.compression_settings.seven_zip_settings.solid_block_size_unit.to_uppercase()))
                 .show_ui(ui, |ui| {
@@ -212,7 +212,7 @@ impl SettingsUI {
             ui.label("Split size:");
             match self.compression_settings.seven_zip_settings.split_size_unit.as_str() {
                 "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=100)),
-                _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=65534))
+                _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=10000))
             };
             ComboBox::from_id_source("Split Size Unit").selected_text(format!("{}B", self.compression_settings.seven_zip_settings.split_size_unit.to_uppercase()))
                 .show_ui(ui, |ui| {
@@ -275,7 +275,7 @@ impl SettingsUI {
             ui.label("Split size:");
             match self.compression_settings.win_rar_settings.split_size_unit.as_str() {
                 "g" => ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.split_size, 0..=100)),
-                _ => ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.split_size, 0..=65534))
+                _ => ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.split_size, 0..=10000))
             };
             ComboBox::from_id_source("Split Size Unit").selected_text(format!("{}B", self.compression_settings.win_rar_settings.split_size_unit.to_uppercase()))
                 .show_ui(ui, |ui| {
