@@ -55,7 +55,7 @@ impl SevenZipSettings {
                     input_window_opened_sender: Sender<bool>,
                     stdin_receiver: Receiver<String>,
                     stdout_sender: Sender<String>) -> std::io::Result<()> {
-        let _ = stdout_sender.send("\nCompressing files with 7z...\n".to_string());
+        let _ = stdout_sender.send("\nCompressing files with 7-Zip...\n".to_string());
         let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
         let mut command = Command::new(archiver_path);
         let _ = std::fs::remove_dir_all(format!("{}/.DepotDownloader", download_path));

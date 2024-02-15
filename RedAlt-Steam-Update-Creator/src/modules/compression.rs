@@ -16,7 +16,7 @@ pub enum Archiver {
 impl Display for Archiver {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            Archiver::SevenZip => "7zip",
+            Archiver::SevenZip => "7-zip",
             Archiver::WinRAR => "WinRAR"
         })
     }

@@ -3,7 +3,7 @@
 - Windows
 - Script manager
 - Depot Downloader
-- 7zip / WinRAR
+- 7-zip / WinRAR
 
 # Instructions
 

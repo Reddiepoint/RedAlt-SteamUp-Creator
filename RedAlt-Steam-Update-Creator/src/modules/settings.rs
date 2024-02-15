@@ -90,7 +90,7 @@ impl SettingsUI {
             ui.label("Archiver:");
             ComboBox::from_id_source("Archiver").selected_text(format!("{}", self.compression_settings.archiver))
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.compression_settings.archiver, Archiver::SevenZip, "7zip");
+                    ui.selectable_value(&mut self.compression_settings.archiver, Archiver::SevenZip, "7-zip");
                     ui.selectable_value(&mut self.compression_settings.archiver, Archiver::WinRAR, "WinRAR");
                 });
         });
