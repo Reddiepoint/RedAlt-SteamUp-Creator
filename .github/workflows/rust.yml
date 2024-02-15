@@ -26,7 +26,7 @@ jobs:
         run: cargo build --all --release
 
       - name: Zip executable
-        run: zip -r RedAlt-Steam-Update-Creator.zip target/release/RedAlt-Steam-Update-Creator.exe
+        run: Compress-Archive -Path target/release/RedAlt-Steam-Update-Installer.exe -DestinationPath RedAlt-Steam-Update-Installer.zip
 
       - name: Release
         uses: softprops/action-gh-release@v1
