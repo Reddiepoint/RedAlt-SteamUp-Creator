@@ -1,21 +1,22 @@
-use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
-use egui_file::FileDialog;
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
+use egui_file::FileDialog;
+use serde::{Deserialize, Serialize};
 use winreg::enums::HKEY_LOCAL_MACHINE;
 use winreg::RegKey;
+use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
 
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub enum Archiver {
     SevenZip,
-    WinRAR
+    WinRAR,
+    // Zip
 }
 
 impl Display for Archiver {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            Archiver::SevenZip => "7-zip",
+            Archiver::SevenZip => "7zip",
             Archiver::WinRAR => "WinRAR"
         })
     }
@@ -66,10 +67,7 @@ impl CompressionSettings {
         let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
         let subkey = r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths";
 
-        let keys = [
-            (format!("{}\\7zFM.exe", subkey), "7z.exe"),
-            (format!("{}\\WinRAR.exe", subkey), "\\WinRAR.exe"),
-        ];
+        let keys = [(format!("{}\\7zFM.exe", subkey), "7z.exe"), (format!("{}\\WinRAR.exe", subkey), "\\WinRAR.exe")];
         for (key, file) in keys {
             if let Ok(key) = hklm.open_subkey(key) {
                 if let Ok(path) = key.get_value("Path") {
@@ -84,3 +82,14 @@ impl CompressionSettings {
         paths
     }
 }
+
+// pub fn compress_files(archiver: Archiver,
+//                       download_path: String,
+//                       seven_zip_settings: SevenZipSettings,
+//                       win_rar_settings: WinRARSettings,
+//                       input_window_opened_sender: Sender<bool>,
+//                       input_receiver: Receiver<String>,
+//                       output_sender: Sender<String>,
+//                       status_sender: Sender<std::io::Result<()>>) {
+//
+// }

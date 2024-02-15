@@ -1,13 +1,14 @@
-use crate::modules::app::TabBar;
-use crate::modules::changes::Changes;
-use crate::modules::compression::{Archiver, CompressionSettings};
-use crate::modules::depot_downloader::{download_changes, DepotDownloaderSettings};
-use crossbeam_channel::{Receiver, Sender};
-use eframe::egui::{Button, Context, ScrollArea, TextEdit, Ui, Window};
-use egui_file::FileDialog;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::thread;
+use crossbeam_channel::{Receiver, Sender};
+use eframe::egui::{Button, Context, ScrollArea, TextEdit, Ui, Window};
+use egui_file::FileDialog;
+use crate::modules::app::TabBar;
+use crate::modules::changes::Changes;
+use crate::modules::compression::{Archiver, CompressionSettings};
+use crate::modules::depot_downloader::{DepotDownloaderSettings, download_changes};
+
 
 pub struct CreateUpdateChannels {
     input_window_opened_sender: Sender<bool>,
@@ -44,6 +45,7 @@ impl Default for CreateUpdateChannels {
     }
 }
 
+
 pub struct CreateUpdateUI {
     channels: CreateUpdateChannels,
     open_file_dialog: Option<FileDialog>,
@@ -71,14 +73,9 @@ impl Default for CreateUpdateUI {
 }
 
 impl CreateUpdateUI {
-    pub fn display(
-        ctx: &Context,
-        ui: &mut Ui,
-        create_update_ui: &mut CreateUpdateUI,
-        depot_downloader_settings: &mut DepotDownloaderSettings,
-        compression_settings: &mut CompressionSettings,
-        tab_bar: &mut TabBar,
-    ) {
+    pub fn display(ctx: &Context, ui: &mut Ui, create_update_ui: &mut CreateUpdateUI,
+                   depot_downloader_settings: &mut DepotDownloaderSettings, compression_settings: &mut CompressionSettings,
+                   tab_bar: &mut TabBar) {
         // Choose the JSON file
         create_update_ui.display_file_dialog(ctx, ui);
         // Parse and display the changes
@@ -93,18 +90,12 @@ impl CreateUpdateUI {
 
     fn display_file_dialog(&mut self, ctx: &Context, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            let button_text = match &self.changes_json_file {
-                Some(path) => {
-                    ui.label(format!("Using JSON file: {}", path.display()));
-                    "Change file"
-                },
-                None => {
-                    ui.label("Choose the JSON file:");
-                    "Open file"
-                }
+            match &self.changes_json_file {
+                None => ui.label("Choose the JSON file:"),
+                Some(path) => ui.label(format!("Using JSON file: {}", path.display())),
             };
 
-            if ui.button(button_text).clicked() {
+            if ui.button("Open file").clicked() {
                 // Show only files with the extension "json".
                 let filter = Box::new({
                     let ext = Some(OsStr::new("json"));
@@ -131,7 +122,7 @@ impl CreateUpdateUI {
             if let Ok(file) = std::fs::read_to_string(file) {
                 // Get changes
                 self.changes = serde_json::from_str::<Changes>(&file)
-                    .unwrap_or_else(|error| Changes::new_error(error.to_string()));
+                    .unwrap_or_else(|error| { Changes::new_error(error.to_string()) });
                 // Display changes
                 let information = match !self.changes.depot.is_empty() {
                     true => format!("Creating update for {} ({} - {}) from Build {} to Build {}",
@@ -171,13 +162,8 @@ impl CreateUpdateUI {
         }
     }
 
-    fn display_download_stuff(
-        &mut self,
-        ui: &mut Ui,
-        depot_downloader_settings: &DepotDownloaderSettings,
-        compression_settings: &mut CompressionSettings,
-        tab_bar: &mut TabBar
-    ) {
+    fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &DepotDownloaderSettings,
+                              compression_settings: &mut CompressionSettings, tab_bar: &mut TabBar) {
         if !depot_downloader_settings.username.is_empty() && (!depot_downloader_settings.password.is_empty() || depot_downloader_settings.remember_credentials) {
             ui.checkbox(&mut self.download_entire_depot, "Ignore changes and download entire depot");
             ui.checkbox(&mut self.compress_files, "Compress files after downloading");
@@ -202,30 +188,22 @@ impl CreateUpdateUI {
                     ui.spinner();
                 }
             });
+
         } else if depot_downloader_settings.username.is_empty() && ui.button("Login").clicked() {
             *tab_bar = TabBar::Settings;
         }
 
         if let Ok(status) = self.channels.depot_downloader_path_receiver.try_recv() {
             match status {
-                Ok(download_path) => {
+                Ok(path) => {
                     let _ = self.channels.output_sender.send("Depot Downloader exited.\n".to_string());
-                    compression_settings.download_path = download_path.clone();
+                    compression_settings.download_path = path.clone();
 
                     // Copy JSON changes file to download path
-                    if !self.download_entire_depot {
-                        if let Some(file) = &self.changes_json_file {
-                            let installer_path = download_path + "/.RedAlt-Steam-Installer/";
-                            let _ = std::fs::create_dir(&installer_path);
-                            let path = installer_path.clone() + file.file_name().unwrap().to_str().unwrap();
-                            let _ = std::fs::copy(file, path).unwrap();
-                            let path = installer_path + "RedAlt-Steam-Update-Installer.exe";
-                            if let Err(error) = std::fs::copy("./RedAlt-Steam-Update-Installer.exe", path) {
-                                let _ = self.channels.output_sender.send(format!("Error copying RedAlt-Steam-Update-Installer.exe: {}", error));
-                            };
-                        }
+                    if let Some(file) = &self.changes_json_file {
+                        let changes_path = path + file.file_name().unwrap().to_str().unwrap();
+                        let _ = std::fs::copy(file, changes_path).unwrap();
                     }
-
                     if self.compress_files {
                         let archiver = compression_settings.archiver.clone();
                         let download_path = compression_settings.download_path.clone();
@@ -243,8 +221,6 @@ impl CreateUpdateUI {
 
                             let _ = status_sender.send(status);
                         });
-                    } else {
-                        self.child_process_running = false;
                     }
                 }
                 Err(error) => {
@@ -269,11 +245,7 @@ impl CreateUpdateUI {
         }
     }
 
-    fn display_depot_downloader_input_window(
-        &mut self,
-        ui: &mut Ui,
-        depot_downloader_settings: &mut DepotDownloaderSettings,
-    ) {
+    fn display_depot_downloader_input_window(&mut self, ui: &mut Ui, depot_downloader_settings: &mut DepotDownloaderSettings) {
         if let Ok(open) = self.channels.input_window_opened_receiver.try_recv() {
             depot_downloader_settings.depot_downloader_input_window_opened = open;
             println!("Received");
@@ -304,7 +276,7 @@ impl CreateUpdateUI {
             while let Ok(output) = self.channels.output_receiver.try_recv() {
                 self.stdout += &output;
                 ui.scroll_to_cursor(None);
-                // ui.ctx().request_repaint();
+                ui.ctx().request_repaint();
             }
         });
     }

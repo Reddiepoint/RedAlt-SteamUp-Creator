@@ -1,3 +1,21 @@
-[workspace]
-members = ["RedAlt-Steam-Update-Creator", "RedAlt-Steam-Update-Installer"]
-resolver = "2"
+[package]
+name = "RedAlt-Steam-Update-Creator"
+version = "0.9.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = "s"
+
+[dependencies]
+crossbeam-channel = "0.5.11"
+eframe = "0.26.2"
+egui_file = "0.15.0"
+reqwest = "0.11.24"
+self_update = { version = "0.39.0" , features = ["default", "compression-zip-deflate"]}
+serde = { version = "1.0.196", features = ["derive"] }
+serde_json = "1.0.113"
+tempfile = "3.10.0"
+winreg = "0.52.0"
