@@ -15,6 +15,7 @@ fn main() {
         let input = get_input(">>");
 
         match input.as_str().split(' ').next().unwrap() {
+            "changes" => settings.show_changes(),
             "exit" => break,
             "help" => get_help(input),
             "set" => settings.modify_fields(input),
@@ -41,6 +42,7 @@ fn get_help(input: String) {
         Some(_) => {}
     };*/
     let mut help = BTreeMap::new();
+    help.insert("changes", "Show the changelog.");
     help.insert("exit", "Exit the program.");
     help.insert("help", "Show help for the given command.");
     help.insert("set <field> <value>", "Set the given field to the given value.\

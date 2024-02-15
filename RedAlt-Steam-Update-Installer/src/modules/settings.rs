@@ -7,7 +7,7 @@ use crate::get_input;
 use crate::modules::changes::Changes;
 
 pub struct Settings {
-    changes_file: Option<PathBuf>,
+    pub changes_file: Option<PathBuf>,
     game_directory: Option<PathBuf>,
     files_directory: Option<PathBuf>,
     backup_directory: Option<PathBuf>,
@@ -25,7 +25,15 @@ impl Default for Settings {
                     .find(|file| file.as_ref().unwrap().file_name().to_str().unwrap().contains("changes.json"))
                     .map(|file| file.unwrap().path())
             },
-            game_directory: Some(current_dir().unwrap().parent().unwrap().parent().unwrap().to_path_buf()),
+            game_directory: {
+                let current_directory = current_dir().unwrap();
+                let parent = current_directory.parent().unwrap();
+                if let Some(grandparent) = parent.parent() {
+                    Some(grandparent.to_path_buf())
+                } else {
+                    Some(parent.to_path_buf())
+                }
+            },
             files_directory: Some(current_dir().unwrap().parent().unwrap().to_path_buf()),
             backup_directory: None,
             create_backup: true,
@@ -52,7 +60,7 @@ impl Display for Settings {
         })?;
         writeln!(f, "Create backup (create_backup): {}", self.create_backup)?;
         writeln!(f, "Copy files (copy_files): {}", self.copy_files)?;
-        writeln!(f, "Remove files (remove_files): {}", self.remove_files)?;
+        write!(f, "Remove files (remove_files): {}", self.remove_files)?;
         Ok(())
     }
 }
@@ -114,36 +122,18 @@ impl Settings {
             return;
         };
 
-        let changes = match &self.changes_file {
-            Some(file) => {
-                match std::fs::read_to_string(file) {
-                    Ok(changes) => changes,
-                    Err(error) => {
-                        println!("Error reading changes file: {}", error);
-                        return;
-                    }
-                }
-            },
-            None => {
-                println!("Provide a changes file.");
-                return;
-            }
-        };
-        let mut changes = match serde_json::from_str::<Changes>(&changes) {
-            Ok(changes) => changes,
-            Err(error) => {
-                println!("Error parsing changes file: {}", error);
-                return;
-            }
+        let mut changes = match Changes::parse_changes(&self.changes_file) {
+            Some(changes) => changes,
+            None => return
         };
 
-        println!("Updating {} with files in {} from {}.",
+        println!("Updating {} with files in {} from {}.\n",
                  self.game_directory.as_ref().unwrap().file_name().unwrap().to_str().unwrap(),
                  self.files_directory.as_ref().unwrap().file_name().unwrap().to_str().unwrap(),
                  self.changes_file.as_ref().unwrap().file_name().unwrap().to_str().unwrap());
         println!("{}", self);
 
-        let input = get_input("Continue? [y/n] ");
+        let input = get_input("Continue? [y/N] ");
         match input.to_lowercase().as_str() {
             "y" | "yes" => {
                 if self.create_backup {
@@ -169,7 +159,7 @@ impl Settings {
             }
         };
 
-        println!("Finished updating.")
+        println!("Finished updating.");
     }
 
     fn copy_files(&self, changes: &mut Changes) {
@@ -222,5 +212,22 @@ impl Settings {
                 }
             }
         }
+    }
+
+    pub fn show_changes(&self) {
+        let mut changes = match Changes::parse_changes(&self.changes_file) {
+            Some(changes) => changes,
+            None => return
+        };
+
+        println!("Changes for {} (Depot {} - Manifest {}):", changes.app, changes.depot, changes.manifest);
+        println!("Initial Build: {}+", changes.initial_build);
+        println!("Final Build: {}", changes.final_build);
+        let display_vec = |vec: &Vec<String>| {
+            vec.iter().map(|value| format!("  {}", value)).collect::<Vec<String>>().join("\n")
+        };
+        println!("Added:\n{}", display_vec(&changes.added));
+        println!("Removed:\n{}", display_vec(&changes.removed));
+        println!("Modified:\n{}", display_vec(&changes.modified));
     }
 }

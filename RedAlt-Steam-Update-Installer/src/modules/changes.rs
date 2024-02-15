@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use serde::Deserialize;
 
 #[derive(Clone, Default, Deserialize)]
@@ -18,16 +19,28 @@ pub struct Changes {
 }
 
 impl Changes {
-    pub fn new_error(error: String) -> Changes {
-        Changes {
-            app: "Failed to parse JSON".to_string(),
-            depot: String::new(),
-            initial_build: String::new(),
-            final_build: String::new(),
-            added: vec![],
-            removed: vec![],
-            modified: vec![],
-            manifest: error,
+    pub fn parse_changes(path: &Option<PathBuf>) -> Option<Changes> {
+        let changes = match &path {
+            Some(file) => {
+                match std::fs::read_to_string(file) {
+                    Ok(changes) => changes,
+                    Err(error) => {
+                        println!("Error reading changes file: {}", error);
+                        return None;
+                    }
+                }
+            },
+            None => {
+                println!("Provide a changes file.");
+                return None;
+            }
+        };
+        match serde_json::from_str::<Changes>(&changes) {
+            Ok(changes) => Some(changes),
+            Err(error) => {
+                println!("Error parsing changes file: {}", error);
+                None
+            }
         }
     }
 }
