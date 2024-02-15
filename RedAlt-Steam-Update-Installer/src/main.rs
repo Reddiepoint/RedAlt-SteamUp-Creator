@@ -7,7 +7,7 @@ mod modules;
 
 fn main() {
     println!("This is the companion installer for RedAlt-Steam-Update-Creator.\n\
-    Type \"help\" to get started.");
+    Enter \"help\" to get a list of commands. Enter \"update\" to start the update process.");
     let mut settings = Settings::default();
     println!("\n{}", settings);
 
