@@ -29,7 +29,9 @@ jobs:
         run: choco install 7zip
 
       - name: zip
-        run: 7z a target/release/RedAlt-Steam-Update-Creator.zip target/release/RedAlt-Steam-Update-Creator.exe
+        run: |
+          cd target/release
+          7z a RedAlt-Steam-Update-Creator.zip RedAlt-Steam-Update-Creator.exe
 
 #      - name: Zip executable
 #        run: Compress-Archive -Path target/release/RedAlt-Steam-Update-Creator.exe -DestinationPath RedAlt-Steam-Update-Creator.zip
