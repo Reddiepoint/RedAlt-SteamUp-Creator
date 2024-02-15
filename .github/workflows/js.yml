@@ -2,6 +2,8 @@ name: Script
 
 on:
   push:
+    branches:
+      - main
     tags:
       - '*'
 
