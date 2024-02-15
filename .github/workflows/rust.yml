@@ -25,13 +25,14 @@ jobs:
       - name: Build
         run: cargo build --all --release
 
+      - name: Zip executable
+        run: zip -r RedAlt-Steam-Update-Creator.zip target/release/RedAlt-Steam-Update-Creator.exe
+
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            target/release/RedAlt-Steam-Update-Creator.exe
-            target/release/RedAlt-Steam-Update-Installer.exe
+          files: RedAlt-Steam-Update-Creator.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

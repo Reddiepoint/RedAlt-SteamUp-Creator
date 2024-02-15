@@ -1,9 +1,8 @@
+use crate::modules::settings::Settings;
 use std::collections::BTreeMap;
 use std::io::{stdin, stdout, Write};
-use crate::modules::settings::Settings;
 
 mod modules;
-
 
 fn main() {
     println!("This is the companion installer for RedAlt-Steam-Update-Creator.\n\
@@ -32,7 +31,7 @@ pub fn get_input(prompt: &str) -> String {
     stdout().flush().expect("Error: Could not flush stdout");
     stdin().read_line(&mut line).expect("Error: Could not read a line");
 
-    return line.trim().to_string()
+    return line.trim().to_string();
 }
 
 fn get_help(input: String) {
@@ -45,7 +44,7 @@ fn get_help(input: String) {
     help.insert("changes", "Show the changelog.");
     help.insert("exit", "Exit the program.");
     help.insert("help", "Show help for the given command.");
-    help.insert("set <field> <value>", "Set the given field to the given value.\
+    help.insert("set <field> <value>", "Set the given field to the given value. \
     To see available fields, type \"settings\".");
     help.insert("settings", "Get the current settings.");
     help.insert("update", "Update the game files.");
