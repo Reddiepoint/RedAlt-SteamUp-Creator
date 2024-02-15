@@ -28,13 +28,10 @@ jobs:
       - name: Install 7zip
         run: choco install 7zip
 
-      - name: zip
+      - name: Zip executable
         run: |
           cd target/release
           7z a RedAlt-Steam-Update-Creator.zip RedAlt-Steam-Update-Creator.exe
-
-#      - name: Zip executable
-#        run: Compress-Archive -Path target/release/RedAlt-Steam-Update-Creator.exe -DestinationPath RedAlt-Steam-Update-Creator.zip
 
       - name: Release
         uses: softprops/action-gh-release@v1
