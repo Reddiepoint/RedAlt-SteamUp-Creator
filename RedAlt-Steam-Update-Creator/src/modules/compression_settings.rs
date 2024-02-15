@@ -1,4 +1,5 @@
 use std::io::{Read, Write};
+use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
@@ -60,6 +61,7 @@ impl SevenZipSettings {
         let _ = std::fs::remove_dir_all(format!("{}/.DepotDownloader", download_path));
         let _ = std::fs::create_dir("./Completed");
         command
+            .creation_flags(0x08000000)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -199,6 +201,7 @@ impl WinRARSettings {
         let _ = std::fs::remove_dir_all(format!("{}/.DepotDownloader", download_path));
         let _ = std::fs::create_dir("./Completed");
         command
+            .creation_flags(0x08000000)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
