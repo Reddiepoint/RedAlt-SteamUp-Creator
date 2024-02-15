@@ -1,5 +1,6 @@
 use std::fmt::Display;
 use std::io::{Read, Write};
+use std::os::windows::process::CommandExt;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -60,6 +61,7 @@ pub fn download_changes(changes: &Changes, settings: &DepotDownloaderSettings,
     // Run Depot Downloader
     let mut command = Command::new("./DepotDownloader.exe");
     command
+        .creation_flags(0x08000000)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
