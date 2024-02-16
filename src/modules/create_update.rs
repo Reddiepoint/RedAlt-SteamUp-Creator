@@ -1,8 +1,11 @@
+use std::env::current_dir;
 use std::ffi::OsStr;
+use std::fmt::{Display, Formatter};
+use std::fs::create_dir;
 use std::path::{Path, PathBuf};
 use std::thread;
 use crossbeam_channel::{Receiver, Sender};
-use eframe::egui::{Button, Context, ScrollArea, TextEdit, Ui, Window};
+use eframe::egui::{Button, ComboBox, Context, ScrollArea, TextEdit, Ui, Window};
 use egui_file::FileDialog;
 use crate::modules::app::TabBar;
 use crate::modules::changes::Changes;
@@ -45,12 +48,29 @@ impl Default for CreateUpdateChannels {
     }
 }
 
+#[derive(PartialEq)]
+enum TargetOS {
+    Windows,
+    Linux,
+    Mac
+}
+
+impl Display for TargetOS {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            TargetOS::Windows => "Windows",
+            TargetOS::Linux => "Linux",
+            TargetOS::Mac => "Mac"
+        })
+    }
+}
 
 pub struct CreateUpdateUI {
     channels: CreateUpdateChannels,
     open_file_dialog: Option<FileDialog>,
     changes_json_file: Option<PathBuf>,
     changes: Changes,
+    target_os: TargetOS,
     download_entire_depot: bool,
     compress_files: bool,
     stdout: String,
@@ -64,6 +84,7 @@ impl Default for CreateUpdateUI {
             open_file_dialog: None,
             changes_json_file: None,
             changes: Changes::default(),
+            target_os: TargetOS::Windows,
             download_entire_depot: false,
             compress_files: true,
             stdout: String::new(),
@@ -165,6 +186,16 @@ impl CreateUpdateUI {
     fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &DepotDownloaderSettings,
                               compression_settings: &mut CompressionSettings, tab_bar: &mut TabBar) {
         if !depot_downloader_settings.username.is_empty() && (!depot_downloader_settings.password.is_empty() || depot_downloader_settings.remember_credentials) {
+            ui.horizontal(|ui| {
+                ui.label("Target OS: ");
+                ComboBox::from_id_source("Target OS").selected_text(format!("{}", self.target_os))
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.target_os, TargetOS::Windows, "Windows");
+                        ui.selectable_value(&mut self.target_os, TargetOS::Linux, "Linux");
+                        ui.selectable_value(&mut self.target_os, TargetOS::Mac, "Mac");
+                    });
+            });
+
             ui.checkbox(&mut self.download_entire_depot, "Ignore changes and download entire depot");
             ui.checkbox(&mut self.compress_files, "Compress files after downloading");
 
@@ -188,7 +219,6 @@ impl CreateUpdateUI {
                     ui.spinner();
                 }
             });
-
         } else if depot_downloader_settings.username.is_empty() && ui.button("Login").clicked() {
             *tab_bar = TabBar::Settings;
         }
@@ -200,10 +230,29 @@ impl CreateUpdateUI {
                     compression_settings.download_path = path.clone();
 
                     // Copy JSON changes file to download path
-                    if let Some(file) = &self.changes_json_file {
-                        let changes_path = path + file.file_name().unwrap().to_str().unwrap();
-                        let _ = std::fs::copy(file, changes_path).unwrap();
+                    if !self.download_entire_depot {
+                        let installer_path = path.clone() + "\\.RedAltSteamInstaller";
+                        create_dir(&installer_path).unwrap();
+                        if let Some(file) = &self.changes_json_file {
+                            let changes_path = installer_path.clone() + "\\" + file.file_name().unwrap().to_str().unwrap();
+                            let _ = std::fs::copy(file, changes_path).unwrap();
+                        }
+                        match self.target_os {
+                            TargetOS::Windows => {
+                                let installer = "RedAlt-Steam-Update-Installer.exe";
+                                let _ = std::fs::copy(current_dir().unwrap().join(installer), installer_path + "\\" + installer).unwrap();
+                            }
+                            TargetOS::Linux => {
+                                let installer = "RedAlt-Steam-Update-Installer_amd64";
+                                let _ = std::fs::copy(current_dir().unwrap().join(installer), installer_path + "\\" + installer).unwrap();
+                            }
+                            TargetOS::Mac => {
+                                let installer = "RedAlt-Steam-Update-Installer_darwin";
+                                let _ = std::fs::copy(current_dir().unwrap().join(installer), installer_path + "\\" + installer).unwrap();
+                            }
+                        }
                     }
+
                     if self.compress_files {
                         let archiver = compression_settings.archiver.clone();
                         let download_path = compression_settings.download_path.clone();
