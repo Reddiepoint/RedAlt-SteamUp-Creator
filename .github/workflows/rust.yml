@@ -31,7 +31,7 @@ jobs:
       - name: Zip executable
         run: |
           cd target/release
-          7z a RedAlt-Steam-Update-Creator.zip RedAlt-Steam-Update-Creator.exe
+          7z a -mx9 RedAlt-Steam-Update-Creator.zip RedAlt-Steam-Update-Creator.exe
 
       - name: Release
         uses: softprops/action-gh-release@v1
