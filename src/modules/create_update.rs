@@ -270,6 +270,8 @@ impl CreateUpdateUI {
 
                             let _ = status_sender.send(status);
                         });
+                    } else {
+                        let _ = self.channels.compression_status_sender.send(Ok(()));
                     }
                 }
                 Err(error) => {
