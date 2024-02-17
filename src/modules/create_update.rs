@@ -286,7 +286,9 @@ impl CreateUpdateUI {
         if let Ok(status) = self.channels.compression_status_receiver.try_recv() {
             match status {
                 Ok(_) => {
-                    let _ = self.channels.output_sender.send("\nFinished compressing files.\n".to_string());
+                    if self.compress_files {
+                        let _ = self.channels.output_sender.send("\nFinished compressing files.\n".to_string());
+                    }
                 }
                 Err(error) => {
                     let _ = self.channels.output_sender.send(format!("\nFailed to compress files: {}.\n", error));
