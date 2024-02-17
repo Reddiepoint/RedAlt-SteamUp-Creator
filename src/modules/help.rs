@@ -17,11 +17,16 @@ pub enum UpdateStatus {
     Error(String),
 }
 
+enum AppType {
+    Creator,
+    Installer
+}
+
 struct Channels {
     pub release_sender: Sender<Result<((Release, String, bool), (Release, String, bool)), String>>,
     pub release_receiver: Receiver<Result<((Release, String, bool), (Release, String, bool)), String>>,
-    pub update_status_sender: Sender<Result<String, (String, String)>>,
-    pub update_status_receiver: Receiver<Result<String, (String, String)>>,
+    pub update_status_sender: Sender<Result<AppType, (AppType, String)>>,
+    pub update_status_receiver: Receiver<Result<AppType, (AppType, String)>>,
 
 }
 
@@ -177,29 +182,27 @@ impl HelpUI {
             if let Ok(status) = self.channels.update_status_receiver.try_recv() {
                 match status {
                     Ok(app) => {
-                        match app.as_str() {
-                            "creator" => {
+                        match app {
+                            AppType::Creator => {
                                 self.updating.0 = false;
                                 self.creator_status = "success".to_string()
                             },
-                            "installer" => {
+                            AppType::Installer => {
                                 self.updating.1 = false;
                                 self.installer_status = "success".to_string()
                             },
-                            _ => {}
                         }
                     }
                     Err((app, error)) => {
-                        match app.as_str() {
-                            "creator" => {
+                        match app {
+                            AppType::Creator => {
                                 self.updating.0 = false;
                                 self.creator_status = error
                             },
-                            "installer" => {
+                            AppType::Installer => {
                                 self.updating.1 = false;
                                 self.installer_status = error
                             },
-                            _ => {}
                         }
                     }
                 }
@@ -217,12 +220,12 @@ impl HelpUI {
                         let update_status_sender = self.channels.update_status_sender.clone();
                         let release_sender = self.channels.release_sender.clone();
                         thread::spawn(move || {
-                            match HelpUI::update("creator") {
+                            match HelpUI::update(AppType::Creator) {
                                 Ok(app) => {
                                     let _ = update_status_sender.send(Ok(app));
                                 },
                                 Err(error) => {
-                                    let _ = update_status_sender.send(Err(("creator".to_string(), error.to_string())));
+                                    let _ = update_status_sender.send(Err((AppType::Creator, error.to_string())));
                                 }
                             };
 
@@ -261,12 +264,12 @@ impl HelpUI {
                         self.updating.1 = true;
                         let update_status_sender = self.channels.update_status_sender.clone();
                         thread::spawn(move || {
-                            match HelpUI::update("installer") {
+                            match HelpUI::update(AppType::Installer) {
                                 Ok(app) => {
                                     let _ = update_status_sender.send(Ok(app));
                                 },
                                 Err(error) => {
-                                    let _ = update_status_sender.send(Err(("installer".to_string(), error.to_string())));
+                                    let _ = update_status_sender.send(Err((AppType::Installer, error.to_string())));
                                 }
                             };
                         });
@@ -333,9 +336,9 @@ impl HelpUI {
         ))
     }
 
-    pub fn update(app: &str) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn update(app: AppType) -> Result<AppType, Box<dyn std::error::Error>> {
         match app {
-            "creator" => {
+            AppType::Creator => {
                 self_update::backends::github::Update::configure()
                     .repo_owner("Reddiepoint")
                     .repo_name("RedAlt-Steam-Update-Creator")
@@ -347,9 +350,9 @@ impl HelpUI {
                     .current_version(env!("CARGO_PKG_VERSION"))
                     .build()?
                     .update()?;
-                Ok(app.to_string())
+                Ok(app)
             },
-            "installer" => {
+            AppType::Installer => {
                 let latest_release = self_update::backends::github::Update::configure()
                     .repo_owner("Reddiepoint")
                     .repo_name("RedAlt-Steam-Update-Installer")
@@ -390,30 +393,8 @@ impl HelpUI {
                     std::fs::write(name, std::fs::read(new_exe)?)?;
                 }
 
-                Ok(app.to_string())
+                Ok(app)
             }
-            _ => todo!(),
         }
-        // let status = self_update::backends::github::Update::configure()
-        //     .repo_owner("Reddiepoint")
-        //     .repo_name("RedAlt-Steam-Update-Creator")
-        //     .bin_name("RedAlt-Steam-Update-Creator")
-        //     .target("")
-        //     .show_download_progress(true)
-        //     .show_output(true)
-        //     // .no_confirm(true)
-        //     .current_version(env!("CARGO_PKG_VERSION"))
-        //     .build()?
-        //     .update()?;
-        // println!("Update status: `{}`!", status.version());
-        //
-        // Ok(())
     }
-}
-
-#[test]
-fn test_check_for_updates() {
-    HelpUI::check_for_updates();
-
-    // println!("{}", bump_is_greater("0.8.0", "0.8.1").unwrap());
 }
