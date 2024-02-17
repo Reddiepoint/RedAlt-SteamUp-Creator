@@ -386,7 +386,7 @@ impl HelpUI {
                     let bin_name = std::path::PathBuf::from(&name);
                     self_update::Extract::from_source(&temp_zip_path)
                         .archive(self_update::ArchiveKind::Zip)
-                        .extract_file(&temp_folder.path(), &bin_name)?;
+                        .extract_file(temp_folder.path(), &bin_name)?;
 
                     let new_exe = temp_folder.path().join(bin_name);
                     println!("Writing");
