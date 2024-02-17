@@ -146,8 +146,8 @@ impl CreateUpdateUI {
                     .unwrap_or_else(|error| { Changes::new_error(error.to_string()) });
                 // Display changes
                 let information = match !self.changes.depot.is_empty() {
-                    true => format!("Creating update for {} ({} - {}) from Build {} to Build {}",
-                                    self.changes.app, self.changes.depot, self.changes.manifest,
+                    true => format!("Creating update for {} ({}) (Depot {} - {}) from Build {} to Build {}",
+                                    self.changes.name, self.changes.app, self.changes.depot, self.changes.manifest,
                                     self.changes.initial_build, self.changes.final_build),
                     false => self.changes.app.to_string()
                 };
