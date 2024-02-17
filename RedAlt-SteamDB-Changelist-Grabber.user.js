@@ -11,8 +11,9 @@
 // @version     0.6.0
 // @author      Reddiepoint
 // @description
-// @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/steamdb_changelist_grabber.user.js
-// @downloadURL https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/steamdb_changelist_grabber.user.js
+// @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/RedAlt-SteamDB-Changelist-Grabber.user.js
+
+// @downloadURL https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/RedAlt-SteamDB-Changelist-Grabber.user.js
 // ==/UserScript==
 
 
