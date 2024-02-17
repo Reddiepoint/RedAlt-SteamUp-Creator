@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.6.2
+// @version     0.6.3
 // @author      Reddiepoint
 // @description Aggregates the changes for a specified depot between different builds.
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/RedAlt-SteamDB-Changelist-Grabber.user.js
@@ -84,7 +84,7 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
                         const filePath = version.querySelector("i").textContent;
                         if (!existingChangelogObject.added.includes(filePath) && !existingChangelogObject.modified.includes(filePath)) {
                             if (existingChangelogObject.removed.includes(filePath)) {
-                                existingChangelogObject.removed = existingChangelogObject.removed.filter(item => item !== filePath);
+                                existingChangelogObject.removed = existingChangelogObject.removed.filter(item => item.toString() !== filePath);
                             }
                             existingChangelogObject.modified.push(filePath);
                         }
@@ -118,6 +118,7 @@ if (GM_getValue("readyToDownload", false)) {
     document.body.removeChild(element);
 
     GM_setValue("readyToDownload", false)
+    localStorage.removeItem("changesObject");
 }
 
 if (window.location.href.includes("steamdb.info/app/")) {
