@@ -7,8 +7,8 @@
 
 # Instructions
 
-1. Download RedAlt-Steam-Update-Creator, and Depot Downloader and install 
-   steamdb_changelist_grabber.user.js with a script manager such as Violentmonkey.
+1. Download RedAlt-Steam-Update-Creator, and Depot Downloader and install
+   RedAlt-SteamDB-Changelist-Grabber.user.js with a script manager such as Violentmonkey.
     - Put the Creator and Depot Downloader in the same folder.
 
 2. Run RedAlt-Steam-Update-Creator and check for updates to download RedAlt-Steam-Update-Installer.

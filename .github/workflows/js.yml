@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Release with steamdb_changelist_grabber.user.js
+      - name: Release with RedAlt-SteamDB-Changelist-Grabber.user.js
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
