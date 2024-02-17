@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.6.1
+// @version     0.6.2
 // @author      Reddiepoint
 // @description Aggregates the changes for a specified depot between different builds.
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/RedAlt-SteamDB-Changelist-Grabber.user.js
@@ -29,7 +29,7 @@ document.body.insertBefore(button, document.body.lastElementChild);
 
 // Function to run when the button is clicked
 function myFunction() {
-    GM_setValue("changesObject", null);
+    localStorage.removeItem("changesObject");
     GM_setValue("readyToDownload", false);
     GM_setValue("depotID", null);
     GM_setValue("manifestID", null);
@@ -39,7 +39,7 @@ function myFunction() {
     // Add your custom functionality here
 }
 
-console.log(GM_getValue("changesObject"));
+console.log(localStorage.getItem("changesObject"));
 
 if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("steamdb.info/patchnotes/")) {
     (function () {
@@ -56,7 +56,7 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
             if (parentSibling && li) {
                 const versions = parentSibling.children;
                 // Retrieve the existing changelogObject
-                const existingChangelogObject = JSON.parse(GM_getValue("changesObject"));
+                const existingChangelogObject = JSON.parse(localStorage.getItem("changesObject"));
 
                 for (let i = 0; i < versions.length; i++) {
                     const version = versions[i];
@@ -91,7 +91,7 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
                     }
                 }
 
-                GM_setValue("changesObject", JSON.stringify(existingChangelogObject));
+                localStorage.setItem("changesObject", JSON.stringify(existingChangelogObject));
                 window.close();
                 observer.disconnect();
             }
@@ -103,7 +103,7 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
 
 if (GM_getValue("readyToDownload", false)) {
     const filename = GM_getValue("depotID") + "_changes.json";
-    const changes = JSON.parse(GM_getValue("changesObject"));
+    const changes = JSON.parse(localStorage.getItem("changesObject"));
     changes.manifest = GM_getValue("manifestID");
 
     const element = document.createElement("a");
@@ -292,7 +292,7 @@ function getChanges() {
         removed: [],
         modified: []
     }
-    GM_setValue("changesObject", JSON.stringify(changesObject));
+    localStorage.setItem("changesObject", JSON.stringify(changesObject));
 
 
     getChangesBtn.insertAdjacentHTML('afterend', '<p>Getting changes... This page will refresh automatically to download the changes.</p>');
