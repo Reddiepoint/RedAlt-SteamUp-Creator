@@ -8,9 +8,9 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.6.0
+// @version     0.6.1
 // @author      Reddiepoint
-// @description
+// @description Aggregates the changes for a specified depot between different builds.
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/RedAlt-SteamDB-Changelist-Grabber.user.js
 // @downloadURL https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/RedAlt-SteamDB-Changelist-Grabber.user.js
 // ==/UserScript==
