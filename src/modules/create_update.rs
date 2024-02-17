@@ -231,8 +231,8 @@ impl CreateUpdateUI {
 
                     // Copy JSON changes file to download path
                     if !self.download_entire_depot {
-                        let installer_path = path.clone() + "\\.RedAltSteamInstaller";
-                        create_dir(&installer_path).unwrap();
+                        let installer_path = path.clone() + "\\.RedAlt-Steam-Update-Installer";
+                        let _ = create_dir(&installer_path);
                         if let Some(file) = &self.changes_json_file {
                             let changes_path = installer_path.clone() + "\\" + file.file_name().unwrap().to_str().unwrap();
                             let _ = std::fs::copy(file, changes_path).unwrap();

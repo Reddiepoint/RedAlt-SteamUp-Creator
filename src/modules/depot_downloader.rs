@@ -58,7 +58,7 @@ pub fn download_changes(
     write_changes_to_file(changes)?;
     let _ = output_sender.clone().send("Starting Depot Downloader...\n".to_string());
     // Download path
-    let path = format!(
+    let download_path = format!(
         "./Downloads/{} ({}) [Build {} to {}]",
         changes.app, changes.depot, changes.initial_build, changes.final_build
     );
@@ -70,7 +70,7 @@ pub fn download_changes(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest])
-        .args(["-dir", &path]);
+        .args(["-dir", &download_path]);
 
     if !download_entire_depot {
         command.args(["-filelist", "files.txt"]);
@@ -149,7 +149,7 @@ pub fn download_changes(
         s.spawn(move || loop {
             match child.try_wait() {
                 Ok(Some(_exit_status)) => {
-                    *result_clone.lock().unwrap() = Ok(path.clone());
+                    *result_clone.lock().unwrap() = Ok(download_path.clone());
                     break;
                 },
                 Ok(None) => {

@@ -118,7 +118,7 @@ impl HelpUI {
     //     }));
     // }
 
-    pub fn show_update_window(&mut self, ctx: &Context, ) {
+    pub fn show_update_window(&mut self, ctx: &Context) {
         Window::new("Updates").open(&mut self.show_update).show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.heading({
@@ -290,7 +290,7 @@ impl HelpUI {
         });
     }
 
-    pub fn check_for_updates() -> Result<((Release, String, bool), (Release, String, bool)), Box<dyn std::error::Error>> {
+    fn check_for_updates() -> Result<((Release, String, bool), (Release, String, bool)), Box<dyn std::error::Error>> {
         println!("Checking Creator Version");
         let creator_current_version = env!("CARGO_PKG_VERSION").to_string();
         let creator_update = self_update::backends::github::Update::configure()
@@ -336,7 +336,7 @@ impl HelpUI {
         ))
     }
 
-    pub fn update(app: AppType) -> Result<AppType, Box<dyn std::error::Error>> {
+    fn update(app: AppType) -> Result<AppType, Box<dyn std::error::Error>> {
         match app {
             AppType::Creator => {
                 self_update::backends::github::Update::configure()
