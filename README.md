@@ -15,6 +15,8 @@
 2. Run RedAlt-Steam-Update-Creator and check for updates to download RedAlt-Steam-Update-Installer.
 
 3. Get the changes for a depot from SteamDB.
+   - Choose a depot and select the build IDs (double-click the box to get a list of builds).
+   - Note: The script may have problems with Edge. Try Firefox if the script doesn't work properly.
 
 4. Download the files for the changes with RedAlt-Steam-Update-Creator.
     - The downloaded files will be in the `Downloads` folder.
