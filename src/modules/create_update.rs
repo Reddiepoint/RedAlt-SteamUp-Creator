@@ -20,8 +20,8 @@ pub struct CreateUpdateChannels {
     input_receiver: Receiver<String>,
     output_sender: Sender<String>,
     output_receiver: Receiver<String>,
-    depot_downloader_path_sender: Sender<std::io::Result<String>>,
-    depot_downloader_path_receiver: Receiver<std::io::Result<String>>,
+    depot_downloader_path_sender: Sender<std::io::Result<PathBuf>>,
+    depot_downloader_path_receiver: Receiver<std::io::Result<PathBuf>>,
     compression_status_sender: Sender<std::io::Result<()>>,
     compression_status_receiver: Receiver<std::io::Result<()>>,
 }
@@ -228,27 +228,27 @@ impl CreateUpdateUI {
                 Ok(path) => {
                     let _ = self.channels.output_sender.send("Depot Downloader exited.\n".to_string());
                     compression_settings.download_path = path.clone();
-
                     // Copy JSON changes file to download path
                     if !self.download_entire_depot {
-                        let installer_path = path.clone() + "\\.RedAlt-Steam-Update-Installer";
+                        let installer_path = path.join(".RedAlt-Steam-Update-Installer");
                         let _ = create_dir(&installer_path);
                         if let Some(file) = &self.changes_json_file {
-                            let changes_path = installer_path.clone() + "\\" + file.file_name().unwrap().to_str().unwrap();
+                            let changes_path = installer_path.join(file.file_name().unwrap());
                             let _ = std::fs::copy(file, changes_path).unwrap();
                         }
                         match self.target_os {
                             TargetOS::Windows => {
-                                let installer = "RedAlt-Steam-Update-Installer.exe";
-                                let _ = std::fs::copy(current_dir().unwrap().join(installer), installer_path + "\\" + installer).unwrap();
+                                let installer_executable = "RedAlt-Steam-Update-Installer.exe";
+                                let _ = std::fs::copy(current_dir().unwrap().join(installer_executable), installer_path.join(installer_executable));
                             }
                             TargetOS::Linux => {
-                                let installer = "RedAlt-Steam-Update-Installer_amd64";
-                                let _ = std::fs::copy(current_dir().unwrap().join(installer), installer_path + "\\" + installer).unwrap();
+                                let installer_executable = "RedAlt-Steam-Update-Installer_amd64";
+                                let _ = std::fs::copy(current_dir().unwrap().join(installer_executable), installer_path.join(installer_executable));
+
                             }
                             TargetOS::Mac => {
-                                let installer = "RedAlt-Steam-Update-Installer_darwin";
-                                let _ = std::fs::copy(current_dir().unwrap().join(installer), installer_path + "\\" + installer).unwrap();
+                                let installer_executable = "RedAlt-Steam-Update-Installer_darwin";
+                                let _ = std::fs::copy(current_dir().unwrap().join(installer_executable), installer_path.join(installer_executable));
                             }
                         }
                     }
@@ -275,7 +275,6 @@ impl CreateUpdateUI {
                     }
                 }
                 Err(error) => {
-                    eprintln!("Failed :( {}", error);
                     let _ = self.channels.output_sender.send(format!("Depot Downloader exited unsuccessfully: {}.\n", error));
 
                     self.child_process_running = false;
@@ -301,8 +300,8 @@ impl CreateUpdateUI {
     fn display_depot_downloader_input_window(&mut self, ui: &mut Ui, depot_downloader_settings: &mut DepotDownloaderSettings) {
         if let Ok(open) = self.channels.input_window_opened_receiver.try_recv() {
             depot_downloader_settings.depot_downloader_input_window_opened = open;
-            println!("Received");
         }
+
         let mut open = depot_downloader_settings.depot_downloader_input_window_opened;
         Window::new("Depot Downloader Input").open(&mut depot_downloader_settings.depot_downloader_input_window_opened)
             .show(ui.ctx(), |ui| {

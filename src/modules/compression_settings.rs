@@ -1,3 +1,5 @@
+use std::env::current_dir;
+use std::fs::create_dir;
 use crate::modules::compression::CompressionSettings;
 use crossbeam_channel::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
@@ -9,6 +11,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 #[derive(Clone, Deserialize, Serialize)]
+#[serde(default)]
 pub struct SevenZipSettings {
     pub path: Option<PathBuf>,
     pub password: String,
@@ -53,7 +56,7 @@ impl Default for SevenZipSettings {
 impl SevenZipSettings {
     pub fn compress(
         &self,
-        download_path: String,
+        download_path: PathBuf,
         input_window_opened_sender: Sender<bool>,
         stdin_receiver: Receiver<String>,
         stdout_sender: Sender<String>,
@@ -61,7 +64,7 @@ impl SevenZipSettings {
         let _ = stdout_sender.send("\nCompressing files with 7-Zip...\n".to_string());
         let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
         let mut command = Command::new(archiver_path);
-        let _ = std::fs::remove_dir_all(format!("{}/.DepotDownloader", download_path));
+        let _ = std::fs::remove_dir_all(download_path.join(".DepotDownloader"));
         let _ = std::fs::create_dir("./Completed");
         command
             .creation_flags(0x08000000)
@@ -69,7 +72,7 @@ impl SevenZipSettings {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .arg("a")
-            .arg(format!("-w{}\\completed", std::env::current_dir().unwrap().to_str().unwrap()))
+            .arg(format!("-w{}", current_dir().unwrap().join("Completed").to_str().unwrap()))
             .arg(format!("-mx{}", self.compression_level))
             .arg(format!("-md{}m", self.dictionary_size))
             .arg(format!("-mfb{}", self.word_size))
@@ -81,10 +84,14 @@ impl SevenZipSettings {
         if !self.password.is_empty() {
             command.arg(format!("-p{}", self.password));
         }
+        let split_folder = if self.split_size > 0 {
+            download_path.file_name().unwrap().to_str().unwrap()
+        } else {
+            ""
+        };
         command
-            .arg(format!(".\\completed\\{}.7z", download_path.split('/').last().unwrap()))
+            .arg(format!("{}.7z", current_dir().unwrap().join("Completed").join(split_folder).join(download_path.file_name().unwrap()).to_str().unwrap()))
             .arg(download_path);
-        println!("Command: {:?}", command);
         let mut child = command.spawn()?;
 
         let result = Arc::new(Mutex::new(Err(std::io::Error::new(std::io::ErrorKind::Other, "Unknown error"))));
@@ -144,7 +151,6 @@ impl SevenZipSettings {
                         }
                     }
                     Err(error) => {
-                        eprintln!("error: {}", error);
                         *result_clone.lock().unwrap() = Err(error);
                         break;
                     }
@@ -157,6 +163,7 @@ impl SevenZipSettings {
 }
 
 #[derive(Clone, Deserialize, Serialize)]
+#[serde(default)]
 pub struct WinRARSettings {
     pub path: Option<PathBuf>,
     pub password: String,
@@ -195,7 +202,7 @@ impl Default for WinRARSettings {
 impl WinRARSettings {
     pub fn compress(
         &self,
-        download_path: String,
+        download_path: PathBuf,
         input_window_opened_sender: Sender<bool>,
         stdin_receiver: Receiver<String>,
         stdo_sender: Sender<String>,
@@ -203,7 +210,7 @@ impl WinRARSettings {
         let _ = stdo_sender.send("\nCompressing files with WinRAR...\n".to_string());
         let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
         let mut command = Command::new(archiver_path);
-        let _ = std::fs::remove_dir_all(format!("{}/.DepotDownloader", download_path));
+        let _ = std::fs::remove_dir_all(download_path.join(".DepotDownloader"));
         let _ = std::fs::create_dir("./Completed");
         command
             .creation_flags(0x08000000)
@@ -211,7 +218,7 @@ impl WinRARSettings {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .arg("a")
-            .arg(format!("-w{}\\completed", std::env::current_dir().unwrap().to_str().unwrap()))
+            .arg(format!("-w{}", current_dir().unwrap().join("Completed").to_str().unwrap()))
             .arg(format!("-m{}", self.compression_level))
             .arg(format!("-md{}m", self.dictionary_size))
             .arg(format!("-mt{}", self.number_of_cpu_threads));
@@ -227,11 +234,16 @@ impl WinRARSettings {
         if !self.password.is_empty() {
             command.arg(format!("-p{}", self.password));
         }
+        let split_folder = if self.split_size > 0 {
+            download_path.file_name().unwrap().to_str().unwrap()
+        } else {
+            ""
+        };
+        let _ = create_dir(current_dir().unwrap().join("Completed").join(split_folder));
         command
             .arg("-ep1")
-            .arg(format!(".\\completed\\{}.rar", download_path.split('/').last().unwrap()))
+            .arg(format!("{}", current_dir().unwrap().join("Completed").join(split_folder).join(download_path.file_name().unwrap()).to_str().unwrap()))
             .arg(download_path);
-        println!("Command: {:?}", command);
         let mut child = command.spawn()?;
 
         let result = Arc::new(Mutex::new(Err(std::io::Error::new(std::io::ErrorKind::Other, "Unknown error"))));
@@ -291,7 +303,6 @@ impl WinRARSettings {
                         }
                     }
                     Err(error) => {
-                        eprintln!("error: {}", error);
                         *result_clone.lock().unwrap() = Err(error);
                         break;
                     }

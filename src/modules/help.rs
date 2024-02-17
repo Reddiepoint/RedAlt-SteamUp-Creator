@@ -151,7 +151,6 @@ impl HelpUI {
                                 let _ = release_sender.send(Err(error.to_string()));
                             }
                         };
-                        println!("Sent");
                     });
                     self.update_status.checked = UpdateStatus::Checking;
                 }
@@ -291,7 +290,6 @@ impl HelpUI {
     }
 
     fn check_for_updates() -> Result<((Release, String, bool), (Release, String, bool)), Box<dyn std::error::Error>> {
-        println!("Checking Creator Version");
         let creator_current_version = env!("CARGO_PKG_VERSION").to_string();
         let creator_update = self_update::backends::github::Update::configure()
             .repo_owner("Reddiepoint")
@@ -301,8 +299,6 @@ impl HelpUI {
             .current_version(&creator_current_version)
             .build()?
             .get_latest_release()?;
-
-        println!("Checking Installer Version");
 
         let mut command = Command::new("./RedAlt-Steam-Update-Installer.exe");
         command
@@ -329,7 +325,6 @@ impl HelpUI {
         let is_creator_update_greater = bump_is_greater(&creator_current_version, &creator_update.version).unwrap();
         let is_installer_update_greater = bump_is_greater(&installer_current_version, &installer_update.version).unwrap();
 
-        println!("{}: {}, {}: {}", creator_current_version, is_creator_update_greater, installer_current_version, is_installer_update_greater);
         Ok((
             (creator_update, creator_current_version, is_creator_update_greater),
             (installer_update, installer_current_version, is_installer_update_greater)
@@ -372,7 +367,6 @@ impl HelpUI {
                     .tempdir_in(current_dir()?)?;
 
                 for (build, platform) in builds {
-                    println!("{}", &build.name);
                     let temp_zip_path = temp_folder.path().join(&build.name);
                     let temp_zip = std::fs::File::create(&temp_zip_path)?;
                     self_update::Download::from_url(&build.download_url)
@@ -389,7 +383,6 @@ impl HelpUI {
                         .extract_file(temp_folder.path(), &bin_name)?;
 
                     let new_exe = temp_folder.path().join(bin_name);
-                    println!("Writing");
                     std::fs::write(name, std::fs::read(new_exe)?)?;
                 }
 

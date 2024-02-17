@@ -1,9 +1,11 @@
+use std::env::current_dir;
 use crate::modules::changes::Changes;
 use crossbeam_channel::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::io::{Read, Write};
 use std::os::windows::process::CommandExt;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -54,12 +56,13 @@ pub fn download_changes(
     input_receiver: Receiver<String>,
     output_sender: Sender<String>,
     download_entire_depot: bool,
-) -> std::io::Result<String> {
+) -> std::io::Result<PathBuf> {
     write_changes_to_file(changes)?;
     let _ = output_sender.clone().send("Starting Depot Downloader...\n".to_string());
     // Download path
-    let download_path = format!("./Downloads/{} - Depot {} (Build {} to {})",
-                                changes.name, changes.depot, changes.initial_build, changes.final_build);
+    let download_path = current_dir().unwrap().to_path_buf().join("Downloads")
+        .join(format!("{} - Depot {} (Build {} to {})",
+                      changes.name, changes.depot, changes.initial_build, changes.final_build));
     // Run Depot Downloader
     let mut command = Command::new("./DepotDownloader.exe");
     command
@@ -68,7 +71,7 @@ pub fn download_changes(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest])
-        .args(["-dir", &download_path]);
+        .args(["-dir", &download_path.to_str().unwrap()]);
 
     if !download_entire_depot {
         command.args(["-filelist", "files.txt"]);
@@ -164,7 +167,6 @@ pub fn download_changes(
                     }
                 }
                 Err(error) => {
-                    eprintln!("error: {}", error);
                     *result_clone.lock().unwrap() = Err(error);
                     break;
                 }

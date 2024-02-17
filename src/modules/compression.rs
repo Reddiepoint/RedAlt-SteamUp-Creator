@@ -1,3 +1,4 @@
+use std::env::current_dir;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use egui_file::FileDialog;
@@ -24,7 +25,7 @@ impl Display for Archiver {
 
 #[derive(Deserialize, Serialize)]
 pub struct CompressionSettings {
-    pub download_path: String,
+    pub download_path: PathBuf,
     pub archiver: Archiver,
     #[serde(skip)]
     pub open_archiver_dialog: Option<FileDialog>,
@@ -37,7 +38,7 @@ pub struct CompressionSettings {
 impl Default for CompressionSettings {
     fn default() -> Self {
         Self {
-            download_path: String::new(),
+            download_path: current_dir().unwrap().to_path_buf(),
             archiver: {
                 let paths = CompressionSettings::get_detected_paths();
                 let mut archiver = Archiver::SevenZip;
