@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     0.5.0
+// @version     0.6.0
 // @author      Reddiepoint
 // @description
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/steamdb_changelist_grabber.user.js
@@ -241,7 +241,9 @@ if (window.location.href.includes("steamdb.info/app/")) {
 function getChanges() {
     const getChangesBtn = document.querySelector("#getChangesBtn");
 
-    const appID = window.location.href.match(/(\d+)/)[0];
+    let title = document.querySelector("#main > div.patchnotes-header > div > div:nth-child(1) > h1 > a");
+    const appName = title.textContent;
+    const appID = title.getAttribute("data-appid")
 
     let buildID1 = document.getElementById("buildID1").value;
     let buildID2 = document.getElementById("buildID2").value;
@@ -281,6 +283,7 @@ function getChanges() {
     GM_setValue("depotID", depotID);
     GM_setValue("readyToDownload", false);
     const changesObject = {
+        name: appName,
         app: appID,
         depot: depotID,
         initial_build: buildID1,
