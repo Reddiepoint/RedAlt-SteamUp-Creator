@@ -2,10 +2,10 @@ use std::env::current_dir;
 use std::os::windows::process::CommandExt;
 use std::process::{Command, Stdio};
 use std::thread;
-use crossbeam_channel::{Receiver, Sender, TryRecvError};
+use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{Button, Context, Window};
 use self_update::update::Release;
-use self_update::version::{bump_is_compatible, bump_is_greater};
+use self_update::version::bump_is_greater;
 
 #[derive(Default)]
 pub enum UpdateStatus {
@@ -22,7 +22,7 @@ enum AppType {
     Installer
 }
 
-struct Channels {
+struct HelpChannels {
     pub release_sender: Sender<Result<((Release, String, bool), (Release, String, bool)), String>>,
     pub release_receiver: Receiver<Result<((Release, String, bool), (Release, String, bool)), String>>,
     pub update_status_sender: Sender<Result<AppType, (AppType, String)>>,
@@ -30,7 +30,7 @@ struct Channels {
 
 }
 
-impl Default for Channels {
+impl Default for HelpChannels {
     fn default() -> Self {
         let (release_sender, release_receiver) = crossbeam_channel::bounded(1);
         let (update_status_sender, update_status_receiver) = crossbeam_channel::bounded(3);
@@ -57,17 +57,32 @@ struct AllUpdateStatus {
     installer: UpdateStatus,
 }
 
-#[derive(Default)]
 pub struct HelpUI {
     pub show_help: bool,
     pub show_update: bool,
-    channels: Channels,
+    channels: HelpChannels,
     update_status: AllUpdateStatus,
     latest_versions: LatestVersions,
     updating: (bool, bool),
     creator_status: String,
     installer_status: String,
     pub link_to_latest_version: String,
+}
+
+impl Default for HelpUI {
+    fn default() -> Self {
+        Self {
+            show_help: false,
+            show_update: true,
+            channels: HelpChannels::default(),
+            update_status: AllUpdateStatus::default(),
+            latest_versions: LatestVersions::default(),
+            updating: (false, false),
+            creator_status: String::new(),
+            installer_status: String::new(),
+            link_to_latest_version: String::new(),
+        }
+    }
 }
 
 
