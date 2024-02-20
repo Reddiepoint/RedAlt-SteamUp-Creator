@@ -39,6 +39,7 @@ impl RedAltSteamUpCreator {
                 // Add menu bar
                 self.display_menu_bar(ctx, ui);
                 // Display other windows
+                self.help_ui.show_help_window(ctx);
                 self.help_ui.show_update_window(ctx);
             });
         });
@@ -61,10 +62,10 @@ impl RedAltSteamUpCreator {
     fn display_menu_bar(&mut self, ctx: &Context, ui: &mut Ui) {
         menu::bar(ui, |ui| {
             ui.menu_button("Help", |ui| {
-                // if ui.button("Show help").clicked() {
-                //     self.help_ui.show_help = true;
-                //     ui.close_menu();
-                // };
+                if ui.button("Show help").clicked() {
+                    self.help_ui.show_help = true;
+                    ui.close_menu();
+                };
 
                 ui.separator();
 

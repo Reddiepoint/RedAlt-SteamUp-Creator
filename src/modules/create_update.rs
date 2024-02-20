@@ -219,7 +219,7 @@ impl CreateUpdateUI {
                     ui.spinner();
                 }
             });
-        } else if depot_downloader_settings.username.is_empty() && ui.button("Login").clicked() {
+        } else if depot_downloader_settings.password.is_empty() && !depot_downloader_settings.remember_credentials && ui.button("Login").clicked() {
             *tab_bar = TabBar::Settings;
         }
 
