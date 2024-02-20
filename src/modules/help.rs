@@ -253,7 +253,10 @@ impl HelpUI {
                             };
                         });
                     }
-
+                    if let Some(body) = &self.latest_versions.creator.0.body {
+                        ui.heading("What's New");
+                        ui.label(body);
+                    }
                     if !self.creator_status.is_empty() {
                         if self.creator_status == "success" {
                             ui.label("Please restart the application to use the latest version!");
@@ -288,7 +291,10 @@ impl HelpUI {
                             };
                         });
                     }
-
+                    if let Some(body) = &self.latest_versions.installer.0.body {
+                        ui.heading("What's New");
+                        ui.label(body);
+                    }
                     if !self.installer_status.is_empty() {
                         if self.installer_status == "success" {
                             ui.label("Updated RedAlt Steam Update Installer to the latest version!");
