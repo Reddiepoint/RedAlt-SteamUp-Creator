@@ -3,7 +3,7 @@ mod modules;
 
 use eframe::egui::ViewportBuilder;
 
-use crate::modules::app::RedAltSteamUpdateCreator;
+use crate::modules::app::RedAltSteamUpCreator;
 
 fn main() {
     let options = eframe::NativeOptions {
@@ -16,8 +16,8 @@ fn main() {
     };
 
     let _ = eframe::run_native(
-        "RedAlt Steam Update Creator",
+        "RedAlt SteamUp Creator",
         options,
-        Box::new(|_cc| Box::<RedAltSteamUpdateCreator>::default()),
+        Box::new(|_cc| Box::<RedAltSteamUpCreator>::default()),
     );
 }

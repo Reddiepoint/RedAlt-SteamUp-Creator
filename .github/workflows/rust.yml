@@ -31,13 +31,13 @@ jobs:
       - name: Zip executable
         run: |
           cd target/release
-          7z a -mx9 RedAlt-Steam-Update-Creator.zip RedAlt-Steam-Update-Creator.exe
+          7z a -mx9 RedAlt-SteamUp-Creator.zip RedAlt-SteamUp-Creator.exe
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: target/release/RedAlt-Steam-Update-Creator.zip
+          files: target/release/RedAlt-SteamUp-Creator.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

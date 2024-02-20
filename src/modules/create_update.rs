@@ -230,7 +230,7 @@ impl CreateUpdateUI {
                     compression_settings.download_path = path.clone();
                     // Copy JSON changes file to download path
                     if !self.download_entire_depot {
-                        let installer_path = path.join(".RedAlt-Steam-Update-Installer");
+                        let installer_path = path.join(".RedAlt-SteamUp-Installer");
                         let _ = create_dir(&installer_path);
                         if let Some(file) = &self.changes_json_file {
                             let changes_path = installer_path.join(file.file_name().unwrap());
@@ -238,16 +238,16 @@ impl CreateUpdateUI {
                         }
                         match self.target_os {
                             TargetOS::Windows => {
-                                let installer_executable = "RedAlt-Steam-Update-Installer.exe";
+                                let installer_executable = "RedAlt-SteamUp-Installer.exe";
                                 let _ = std::fs::copy(current_dir().unwrap().join(installer_executable), installer_path.join(installer_executable));
                             }
                             TargetOS::Linux => {
-                                let installer_executable = "RedAlt-Steam-Update-Installer_amd64";
+                                let installer_executable = "RedAlt-SteamUp-Installer_amd64";
                                 let _ = std::fs::copy(current_dir().unwrap().join(installer_executable), installer_path.join(installer_executable));
 
                             }
                             TargetOS::Mac => {
-                                let installer_executable = "RedAlt-Steam-Update-Installer_darwin";
+                                let installer_executable = "RedAlt-SteamUp-Installer_darwin";
                                 let _ = std::fs::copy(current_dir().unwrap().join(installer_executable), installer_path.join(installer_executable));
                             }
                         }

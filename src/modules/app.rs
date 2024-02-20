@@ -12,14 +12,14 @@ pub enum TabBar {
 }
 
 #[derive(Default)]
-pub struct RedAltSteamUpdateCreator {
+pub struct RedAltSteamUpCreator {
     pub tab_bar: TabBar,
     pub create_update_ui: CreateUpdateUI,
     pub settings_ui: SettingsUI,
     pub help_ui: HelpUI,
 }
 
-impl App for RedAltSteamUpdateCreator {
+impl App for RedAltSteamUpCreator {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         self.settings_ui.read_settings();
         self.display_top_bar(ctx);
@@ -28,7 +28,7 @@ impl App for RedAltSteamUpdateCreator {
     }
 }
 
-impl RedAltSteamUpdateCreator {
+impl RedAltSteamUpCreator {
     fn display_top_bar(&mut self, ctx: &Context) {
         TopBottomPanel::top("Tabs").show(ctx, |ui| {
             ui.horizontal(|ui| {

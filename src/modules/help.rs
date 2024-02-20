@@ -224,7 +224,7 @@ impl HelpUI {
 
             ui.separator();
 
-            ui.heading("RedAlt Steam Update Creator");
+            ui.heading("RedAlt SteamUp Creator");
 
             match self.latest_versions.creator.2 {
                 true => {
@@ -257,7 +257,6 @@ impl HelpUI {
                     if !self.creator_status.is_empty() {
                         if self.creator_status == "success" {
                             ui.label("Please restart the application to use the latest version!");
-                            self.updating.0 = true;
                         } else {
                             ui.label(format!("Error updating creator: {}", self.creator_status));
                         }
@@ -276,7 +275,7 @@ impl HelpUI {
 
             ui.separator();
 
-            ui.heading("RedAlt Steam Update Installer");
+            ui.heading("RedAlt SteamUp Installer");
 
             match self.latest_versions.installer.2 {
                 true => {
@@ -297,7 +296,7 @@ impl HelpUI {
                     }
                     if !self.installer_status.is_empty() {
                         if self.installer_status == "success" {
-                            ui.label("Updated RedAlt Steam Update Installer to the latest version!");
+                            ui.label("Updated RedAlt SteamUp Installer to the latest version!");
                         } else {
                             ui.label(format!("Error updating installer: {}", self.installer_status));
                         }
@@ -321,14 +320,14 @@ impl HelpUI {
         let creator_current_version = env!("CARGO_PKG_VERSION").to_string();
         let creator_update = self_update::backends::github::Update::configure()
             .repo_owner("Reddiepoint")
-            .repo_name("RedAlt-Steam-Update-Creator")
+            .repo_name("RedAlt-SteamUp-Creator")
             .target("")
-            .bin_name("RedAlt-Steam-Update-Creator")
+            .bin_name("RedAlt-SteamUp-Creator")
             .current_version(&creator_current_version)
             .build()?
             .get_latest_release()?;
 
-        let mut command = Command::new("./RedAlt-Steam-Update-Installer.exe");
+        let mut command = Command::new("./RedAlt-SteamUp-Installer.exe");
         command
             .creation_flags(0x08000000)
             .stdout(Stdio::piped())
@@ -343,9 +342,9 @@ impl HelpUI {
 
         let installer_update = self_update::backends::github::Update::configure()
             .repo_owner("Reddiepoint")
-            .repo_name("RedAlt-Steam-Update-Installer")
+            .repo_name("RedAlt-SteamUp-Installer")
             .target("")
-            .bin_name("RedAlt-Steam-Update-Installer")
+            .bin_name("RedAlt-SteamUp-Installer")
             .current_version(&installer_current_version)
             .build()?
             .get_latest_release()?;
@@ -364,9 +363,9 @@ impl HelpUI {
             AppType::Creator => {
                 self_update::backends::github::Update::configure()
                     .repo_owner("Reddiepoint")
-                    .repo_name("RedAlt-Steam-Update-Creator")
+                    .repo_name("RedAlt-SteamUp-Creator")
                     .target("")
-                    .bin_name("RedAlt-Steam-Update-Creator")
+                    .bin_name("RedAlt-SteamUp-Creator")
                     .show_download_progress(false)
                     .show_output(false)
                     .no_confirm(true)
@@ -378,9 +377,9 @@ impl HelpUI {
             AppType::Installer => {
                 let latest_release = self_update::backends::github::Update::configure()
                     .repo_owner("Reddiepoint")
-                    .repo_name("RedAlt-Steam-Update-Installer")
+                    .repo_name("RedAlt-SteamUp-Installer")
                     .target("")
-                    .bin_name("RedAlt-Steam-Update-Installer")
+                    .bin_name("RedAlt-SteamUp-Installer")
                     .current_version("0.0.0")
                     .build()?
                     .get_latest_release()?;
@@ -401,9 +400,9 @@ impl HelpUI {
                         .set_header(reqwest::header::ACCEPT, "application/octet-stream".parse()?)
                         .download_to(&temp_zip)?;
                     let name = if platform.is_empty() {
-                        "RedAlt-Steam-Update-Installer.exe".to_string()
+                        "RedAlt-SteamUp-Installer.exe".to_string()
                     } else {
-                        format!("RedAlt-Steam-Update-Installer_{}", platform)
+                        format!("RedAlt-SteamUp-Installer_{}", platform)
                     };
                     let bin_name = std::path::PathBuf::from(&name);
                     self_update::Extract::from_source(&temp_zip_path)

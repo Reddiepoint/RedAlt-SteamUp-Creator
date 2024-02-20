@@ -1,6 +1,6 @@
 [package]
-name = "RedAlt-Steam-Update-Creator"
-version = "0.11.9"
+name = "RedAlt-SteamUp-Creator"
+version = "0.11.10"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -15,7 +15,7 @@ eframe = "0.26.2"
 egui_file = "0.15.0"
 reqwest = "0.11.24"
 self_update = { version = "0.39.0" , features = ["default", "compression-zip-deflate"]}
-serde = { version = "1.0.196", features = ["derive"] }
-serde_json = "1.0.113"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
 tempfile = "3.10.0"
 winreg = "0.52.0"
