@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "RedAlt-SteamUp-Creator"
-version = "0.11.11"
+version = "1.0.0"
 dependencies = [
  "crossbeam-channel",
  "eframe",
