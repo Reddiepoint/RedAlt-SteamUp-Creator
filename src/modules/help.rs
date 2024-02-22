@@ -86,7 +86,7 @@ impl Default for HelpUI {
 }
 
 
-// const HOMEPAGE: &str = "https://cs.rin.ru/forum/viewtopic.php?f=14&p=2822500#p2822500";
+const HOMEPAGE: &str = "https://cs.rin.ru/forum/viewtopic.php?f=14&t=138413";
 const DOCUMENTATION: &str = "https://reddiepoint.github.io/RedAlt-SteamUp-Documentation/using-the-creator.html";
 
 impl HelpUI {
@@ -95,8 +95,8 @@ impl HelpUI {
         Window::new("Help").open(&mut self.show_help).show(ctx, |ui| ScrollArea::vertical().min_scrolled_height(ui.available_height()).id_source("Help").show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.hyperlink_to("Documentation", DOCUMENTATION);
-                // ui.label("|");
-                // ui.hyperlink_to("Homepage", HOMEPAGE);
+                ui.label("|");
+                ui.hyperlink_to("Homepage", HOMEPAGE);
             });
 
            /* ui.heading("Extract");
