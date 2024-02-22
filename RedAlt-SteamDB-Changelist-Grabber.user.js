@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     1.0.0
+// @version     1.0.1
 // @author      Reddiepoint
 // @description Aggregates the changes for a specified depot between different builds.
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/RedAlt-SteamDB-Changelist-Grabber.user.js
@@ -32,7 +32,6 @@ function myFunction() {
     localStorage.removeItem("changesObject");
     GM_setValue("readyToDownload", false);
     GM_setValue("depotID", null);
-    GM_setValue("manifestID", null);
     GM_setValue("gettingChangelogs", false);
     // Your code here
     console.log("Reset!");
@@ -48,8 +47,7 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
         if (!depotElement) {
             window.close();
         }
-        const manifestID = depotElement.href.split("M:")[1];
-        GM_setValue("manifestID", manifestID);
+
         const observer = new MutationObserver(async (mutations, observer) => {
             const parentSibling = depotElement.parentElement.nextElementSibling;
             const li = parentSibling.querySelector("li.versions");
@@ -92,6 +90,8 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
                 }
 
                 localStorage.setItem("changesObject", JSON.stringify(existingChangelogObject));
+                const manifestID = depotElement.href.split("M:")[1];
+                localStorage.setItem("manifestID", manifestID);
                 window.close();
                 observer.disconnect();
             }
@@ -104,7 +104,7 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
 if (GM_getValue("readyToDownload", false)) {
     const filename = GM_getValue("depotID") + "_changes.json";
     const changes = JSON.parse(localStorage.getItem("changesObject"));
-    changes.manifest = GM_getValue("manifestID");
+    changes.manifest = localStorage.getItem("manifestID");
 
     const element = document.createElement("a");
     element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(changes)));
@@ -119,6 +119,7 @@ if (GM_getValue("readyToDownload", false)) {
 
     GM_setValue("readyToDownload", false)
     localStorage.removeItem("changesObject");
+    localStorage.removeItem("manifestID");
 }
 
 if (window.location.href.includes("steamdb.info/app/")) {
