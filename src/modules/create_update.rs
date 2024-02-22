@@ -3,6 +3,7 @@ use std::ffi::OsStr;
 use std::fmt::{Display, Formatter};
 use std::fs::create_dir;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::thread;
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{Button, ComboBox, Context, ScrollArea, TextEdit, Ui, Window};
@@ -106,6 +107,7 @@ impl CreateUpdateUI {
             create_update_ui.display_depot_downloader_input_window(ui, depot_downloader_settings);
             ui.separator();
             create_update_ui.display_stdout(ui);
+            create_update_ui.multiup_direct_button(ui, compression_settings);
         }
     }
 
@@ -244,7 +246,6 @@ impl CreateUpdateUI {
                             TargetOS::Linux => {
                                 let installer_executable = "RedAlt-SteamUp-Installer_amd64";
                                 let _ = std::fs::copy(current_dir().unwrap().join(installer_executable), installer_path.join(installer_executable));
-
                             }
                             TargetOS::Mac => {
                                 let installer_executable = "RedAlt-SteamUp-Installer_darwin";
@@ -331,5 +332,33 @@ impl CreateUpdateUI {
                 ui.ctx().request_repaint();
             }
         });
+    }
+
+    fn multiup_direct_button(&mut self, ui: &mut Ui, compression_settings: &mut CompressionSettings) {
+        // Check if there is an executable in the current directory
+        if let Some(path) = &compression_settings.multiup_direct_path {
+            if ui.button("Upload with MultiUp Direct").clicked() {
+                let download_path = compression_settings.download_path.clone();
+                let path = path.clone();
+                thread::spawn(move || {
+                    let mut command = Command::new(path);
+                    command.args(["--upload", "disk_upload"]);
+                    for entry in current_dir().unwrap().join("Completed").read_dir().unwrap().flatten() {
+                        if entry.file_name().to_str().unwrap().contains(download_path.file_name().unwrap().to_str().unwrap()) {
+                           if entry.file_type().unwrap().is_file() {
+                               command.arg(entry.path());
+                           } else if entry.file_type().unwrap().is_dir() {
+                               for file in entry.path().read_dir().unwrap().flatten() {
+                                   command.arg(file.path());
+                               }
+                           }
+                        }
+                    }
+                    println!("{:?}", command);
+                    let mut child = command.spawn().unwrap();
+                    let _ = child.wait();
+                });
+            }
+        }
     }
 }

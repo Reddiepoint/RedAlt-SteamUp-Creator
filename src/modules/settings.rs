@@ -5,7 +5,7 @@ use eframe::egui::{ComboBox, Context, Slider, TextEdit, Ui};
 use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct SettingsUI {
@@ -43,7 +43,8 @@ impl SettingsUI {
         settings_ui.display_depot_downloader_settings(ui);
         ui.separator();
         settings_ui.display_compression_settings(ui);
-        // let _ = std::fs::write("last_user.txt", settings_ui.depot_downloader_settings.username.clone());
+        ui.separator();
+        settings_ui.display_multiup_direct_settings(ui);
     }
 
     fn display_settings_buttons(&mut self, ui: &mut Ui) {
@@ -57,6 +58,7 @@ impl SettingsUI {
             }
         });
     }
+
     fn display_depot_downloader_settings(&mut self, ui: &mut Ui) {
         ui.heading("Steam Depot Downloader Settings");
         ui.horizontal(|ui| {
@@ -290,6 +292,35 @@ impl SettingsUI {
             ui.label(format!("Memory usage for Compressing: {} MB.", memory.0));
             ui.label(format!("Memory usage for Decompressing: {} MB.", memory.1));
         });
+    }
+
+    fn display_multiup_direct_settings(&mut self, ui: &mut Ui) {
+        ui.heading("MultiUp Direct Settings");
+        ui.horizontal(|ui| {
+            match &self.compression_settings.multiup_direct_path {
+                Some(path) => ui.label(format!("Using executable: {}", path.display())),
+                None => ui.label("Choose the executable:"),
+            };
+
+            if ui.button("Open file").clicked() {
+                // Show only files with the extension "json".
+                let filter = Box::new({
+                    let ext = Some(OsStr::new("exe"));
+                    move |path: &Path| -> bool { path.extension() == ext }
+                });
+                let mut dialog = FileDialog::open_file(self.compression_settings.multiup_direct_path.clone()).show_files_filter(filter);
+                dialog.open();
+                self.compression_settings.multiup_direct_file_dialog = Some(dialog);
+            }
+        });
+
+        if let Some(dialog) = &mut self.compression_settings.multiup_direct_file_dialog {
+            if dialog.show(ui.ctx()).selected() {
+                if let Some(file) = dialog.path() {
+                    self.compression_settings.multiup_direct_path = Some(file.to_path_buf());
+                }
+            }
+        }
     }
 }
 

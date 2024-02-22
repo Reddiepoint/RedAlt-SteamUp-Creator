@@ -24,6 +24,7 @@ impl Display for Archiver {
 }
 
 #[derive(Deserialize, Serialize)]
+#[serde(default)]
 pub struct CompressionSettings {
     pub download_path: PathBuf,
     pub archiver: Archiver,
@@ -33,6 +34,9 @@ pub struct CompressionSettings {
     pub archiver_path: Option<PathBuf>,
     pub seven_zip_settings: SevenZipSettings,
     pub win_rar_settings: WinRARSettings,
+    pub multiup_direct_path: Option<PathBuf>,
+    #[serde(skip)]
+    pub multiup_direct_file_dialog: Option<FileDialog>,
 }
 
 impl Default for CompressionSettings {
@@ -57,6 +61,17 @@ impl Default for CompressionSettings {
             archiver_path: None,
             seven_zip_settings: SevenZipSettings::default(),
             win_rar_settings: WinRARSettings::default(),
+            multiup_direct_path: {
+                let mut executable = None;
+                for file in current_dir().unwrap().read_dir().unwrap().flatten() {
+                    if file.file_name().to_str().unwrap().contains("Direct.exe") {
+                        executable = Some(file.path());
+                        break;
+                    }
+                }
+                executable
+            },
+            multiup_direct_file_dialog: None,
         }
     }
 }

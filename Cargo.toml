@@ -1,6 +1,6 @@
 [package]
 name = "RedAlt-SteamUp-Creator"
-version = "1.0.0"
+version = "1.1.0-beta.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,7 +12,7 @@ opt-level = "s"
 [dependencies]
 crossbeam-channel = "0.5.11"
 eframe = "0.26.2"
-egui_file = "0.15.0"
+egui_file = "0.16.2"
 reqwest = "0.11.24"
 self_update = { version = "0.39.0" , features = ["default", "compression-zip-deflate"]}
 serde = { version = "1.0.197", features = ["derive"] }

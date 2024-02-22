@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "RedAlt-SteamUp-Creator"
-version = "1.0.0"
+version = "1.1.0-beta.1"
 dependencies = [
  "crossbeam-channel",
  "eframe",
@@ -1119,9 +1119,9 @@ dependencies = [
 
 [[package]]
 name = "egui_file"
-version = "0.15.0"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7ab9511d758f446da19bc1341d32014dea4c5c8328709975937b97b33b2347e"
+checksum = "dec653b21bed5c3b863b128ca117836fb9285c8faefefcf66f0845c68728d551"
 dependencies = [
  "egui",
 ]
