@@ -98,38 +98,6 @@ impl HelpUI {
                 ui.label("|");
                 ui.hyperlink_to("Homepage", HOMEPAGE);
             });
-
-           /* ui.heading("Extract");
-            ui.label("Extracts direct links from MultiUp links.\n\n\
-            Link detection is quite robust, meaning you can paste in any page with links as well as HTML containing links. \
-            Duplicate links will be filtered out, excluding links in projects.\n\n\
-            If you want the validity of the hosts to be checked by MultiUp, enable \"Recheck link validity,\" \
-            otherwise, the original values from the site will be used. However, generation times may take much longer if this is enabled.\n\n\
-            You can select direct links by using combinations of CTRL and SHIFT and clicking and search for file names.");
-
-            ui.separator();
-
-            ui.heading("Debrid");
-            ui.label("Unlocks links using a Debrid service.\n\n\
-            Currently supports AllDebrid and RealDebrid.\n\
-            To read the keys from a file, create \"api_key.json\" in the same directory as this app with the following structure:");
-            let mut json_example = "\
-            {\n\
-                \t\"all_debrid\": \"YOUR_ALLDEBRID_API_KEY\",\n\
-                \t\"real_debrid\": \"YOUR_REALDEBRID_API_KEY\"\n\
-            }";
-            ui.code_editor(&mut json_example);
-            ui.label("You can choose to omit any field here (i.e. only have all_debrid or real_debrid) \
-            if you do not have an API key for the service.");
-
-            ui.separator();
-
-            ui.heading("Upload");
-            ui.label("Uploads content to MultiUp.\n\n\
-            Remote uploaded with data streaming enabled allows for better support of different sites, including Debrid services.\
-            Since this is an experimental feature, be careful when uploading large files.\n\
-            Data streaming essentially downloads and uploads chunks of data, as if the file was downloaded \
-            to disk and then uploaded to MultiUp. However, in this case, the data is not written to disk.");*/
         }));
     }
 
