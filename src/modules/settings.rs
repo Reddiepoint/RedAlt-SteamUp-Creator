@@ -1,6 +1,6 @@
 use crate::modules::compression::{Archiver, CompressionSettings};
 use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
-use crate::modules::depot_downloader::DepotDownloaderSettings;
+use crate::modules::depot_downloader::{DepotDownloaderSettings, EncryptionKey};
 use eframe::egui::{ComboBox, Context, Slider, TextEdit, Ui};
 use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
@@ -9,7 +9,6 @@ use std::io::Read;
 use std::path::Path;
 use aes_gcm::{AeadCore, Aes256Gcm, Key, KeyInit};
 use aes_gcm::aead::{Aead, Nonce, OsRng};
-
 #[derive(Default, Deserialize, Serialize)]
 pub struct SettingsUI {
     pub depot_downloader_settings: DepotDownloaderSettings,
@@ -31,13 +30,18 @@ impl SettingsUI {
             self.compression_settings = settings.compression_settings;
 
             // Decrypt username
-            let key = &self.depot_downloader_settings.encryption_key;
+            if let Ok(mut file) = std::fs::File::open("key.json") {
+               self.depot_downloader_settings.encryption_key = serde_json::from_reader(&mut file).unwrap();
+
+            };
+
+            let key = xor_cipher(&self.depot_downloader_settings.encryption_key.encrypted_encryption_key);
             let nonce = Nonce::<Aes256Gcm>::from_slice(&self.depot_downloader_settings.username_nonce);
             if key.is_empty() || nonce.is_empty() {
                 return;
             }
 
-            let key = Key::<Aes256Gcm>::from_slice(key);
+            let key = Key::<Aes256Gcm>::from_slice(&key);
             let cipher = Aes256Gcm::new(&key);
 
             let decryption = cipher.decrypt(&nonce, self.depot_downloader_settings.encrypted_username.as_ref());
@@ -58,16 +62,17 @@ impl SettingsUI {
             let cipher = Aes256Gcm::new(&key);
             let decrypted_username = self.depot_downloader_settings.username.clone();
             let encrypted_username = cipher.encrypt(&nonce, decrypted_username.as_bytes());
-            self.depot_downloader_settings.encryption_key = key.as_slice().to_owned().try_into().unwrap();
+            self.depot_downloader_settings.encryption_key.encrypted_encryption_key = xor_cipher(&key.as_slice().to_owned().try_into().unwrap());
             self.depot_downloader_settings.username_nonce = nonce.as_slice().to_owned().try_into().unwrap();
             self.depot_downloader_settings.encrypted_username = encrypted_username.unwrap();
 
             // self.depot_downloader_settings.username = String::new();
         } else {
-            self.depot_downloader_settings.encryption_key = [0; 32];
+            self.depot_downloader_settings.encryption_key.encrypted_encryption_key = [0; 32];
             self.depot_downloader_settings.username_nonce = [0; 12];
             self.depot_downloader_settings.encrypted_username = Vec::new();
         }
+        let _ = std::fs::write("key.json", serde_json::to_string_pretty(&self.depot_downloader_settings.encryption_key).unwrap());
         let _ = std::fs::write("settings.json", serde_json::to_string_pretty(&self).unwrap());
         // self.depot_downloader_settings.username = username;
     }
@@ -356,6 +361,15 @@ impl SettingsUI {
             }
         }
     }
+}
+
+fn xor_cipher(key: &[u8; 32]) -> [u8; 32] {
+    let secret_key = "red-alt-steam-up-creator-xor-key".as_bytes();
+    let mut output = [0; 32];
+    for i in 0..32 {
+        output[i] = key[i] ^ secret_key[i];
+    }
+    output
 }
 
 fn calculate_7zip_memory_usage(settings: &SevenZipSettings) -> (u128, u128) {

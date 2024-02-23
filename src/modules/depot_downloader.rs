@@ -10,10 +10,17 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use aes_gcm::aead::generic_array::GenericArray;
 
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct EncryptionKey {
+    pub encrypted_encryption_key: [u8; 32],
+}
+
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(default)]
 pub struct DepotDownloaderSettings {
-    pub encryption_key: [u8; 32],
+    #[serde(skip)]
+    pub encryption_key: EncryptionKey,
     pub username_nonce: [u8; 12],
     pub encrypted_username: Vec<u8>,
     // Used by Depot Downloader
@@ -38,7 +45,7 @@ pub struct DepotDownloaderSettings {
 impl Default for DepotDownloaderSettings {
     fn default() -> Self {
         Self {
-            encryption_key: [0; 32],
+            encryption_key: EncryptionKey { encrypted_encryption_key: [0; 32] },
             username_nonce: [0; 12],
             encrypted_username: Vec::new(),
             username: String::new(),
@@ -205,7 +212,6 @@ pub fn download_manifest(download_path: PathBuf, changes: &Changes, settings: &D
         .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest])
         .args(["-dir", &download_path.to_str().unwrap()])
         .arg("-manifest-only");
-
 
 
     match settings.remember_credentials {
