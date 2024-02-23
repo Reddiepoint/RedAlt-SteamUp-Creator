@@ -2,10 +2,9 @@ use std::env::current_dir;
 use crate::modules::changes::Changes;
 use crossbeam_channel::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
 use std::io::{Read, Write};
 use std::os::windows::process::CommandExt;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -22,6 +21,10 @@ pub struct DepotDownloaderSettings {
     // Used by app
     pub remember_credentials: bool,
     #[serde(skip)]
+    pub download_manifest: bool,
+    #[serde(skip)]
+    pub download_entire_depot: bool,
+    #[serde(skip)]
     pub depot_downloader_input_window_opened: bool,
     #[serde(skip)]
     pub input: String
@@ -35,6 +38,8 @@ impl Default for DepotDownloaderSettings {
             max_servers: 20,
             max_downloads: 8,
             remember_credentials: true,
+            download_manifest: true,
+            download_entire_depot: false,
             depot_downloader_input_window_opened: false,
             input: String::new(),
         }
@@ -55,7 +60,6 @@ pub fn download_changes(
     input_window_opened_sender: Sender<bool>,
     input_receiver: Receiver<String>,
     output_sender: Sender<String>,
-    download_entire_depot: bool,
 ) -> std::io::Result<PathBuf> {
     write_changes_to_file(changes)?;
     let _ = output_sender.clone().send("Starting Depot Downloader...\n".to_string());
@@ -73,7 +77,7 @@ pub fn download_changes(
         .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest])
         .args(["-dir", &download_path.to_str().unwrap()]);
 
-    if !download_entire_depot {
+    if !settings.download_entire_depot {
         command.args(["-filelist", "files.txt"]);
     }
 
@@ -173,6 +177,41 @@ pub fn download_changes(
             }
         });
     });
-
+    if settings.download_manifest {
+        let _ = output_sender.send("Downloading manifest...\n".to_string());
+        let _ = download_manifest(changes, settings);
+        let _ = output_sender.send("Downloaded manifest.\n".to_string());
+    }
     Arc::into_inner(result).unwrap().into_inner().unwrap()
+}
+
+pub fn download_manifest(changes: &Changes, settings: &DepotDownloaderSettings) -> std::io::Result<()> {
+    let download_path = current_dir().unwrap().to_path_buf().join("Downloads")
+        .join(format!("{} - Depot {} (Build {} to {})",
+                      changes.name, changes.depot, changes.initial_build, changes.final_build));
+    // Run Depot Downloader
+    let mut command = Command::new("./DepotDownloader.exe");
+    command
+        .creation_flags(0x08000000)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest])
+        .args(["-dir", &download_path.to_str().unwrap()])
+        .arg("-manifest-only");
+
+
+
+    match settings.remember_credentials {
+        true => if !settings.password.is_empty() {
+            command.args(["-username", &settings.username, "-password", &settings.password, "-remember-password"])
+        } else {
+            command.args(["-username", &settings.username, "-remember-password"])
+        },
+        false => command.args(["-username", &settings.username, "-password", &settings.password])
+    };
+
+    let mut child = command.spawn()?;
+    let _ = child.wait();
+    Ok(())
 }

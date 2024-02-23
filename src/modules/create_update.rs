@@ -3,7 +3,7 @@ use std::ffi::OsStr;
 use std::fmt::{Display, Formatter};
 use std::fs::create_dir;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::thread;
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{Button, ComboBox, Context, ScrollArea, TextEdit, Ui, Window};
@@ -11,7 +11,7 @@ use egui_file::FileDialog;
 use crate::modules::app::TabBar;
 use crate::modules::changes::Changes;
 use crate::modules::compression::{Archiver, CompressionSettings};
-use crate::modules::depot_downloader::{DepotDownloaderSettings, download_changes};
+use crate::modules::depot_downloader::{DepotDownloaderSettings, download_changes, download_manifest};
 
 
 pub struct CreateUpdateChannels {
@@ -72,7 +72,6 @@ pub struct CreateUpdateUI {
     changes_json_file: Option<PathBuf>,
     changes: Changes,
     target_os: TargetOS,
-    download_entire_depot: bool,
     compress_files: bool,
     stdout: String,
     child_process_running: bool,
@@ -86,7 +85,6 @@ impl Default for CreateUpdateUI {
             changes_json_file: None,
             changes: Changes::default(),
             target_os: TargetOS::Windows,
-            download_entire_depot: false,
             compress_files: true,
             stdout: String::new(),
             child_process_running: false,
@@ -185,7 +183,7 @@ impl CreateUpdateUI {
         }
     }
 
-    fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &DepotDownloaderSettings,
+    fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &mut DepotDownloaderSettings,
                               compression_settings: &mut CompressionSettings, tab_bar: &mut TabBar) {
         if !depot_downloader_settings.username.is_empty() && (!depot_downloader_settings.password.is_empty() || depot_downloader_settings.remember_credentials) {
             ui.horizontal(|ui| {
@@ -198,7 +196,8 @@ impl CreateUpdateUI {
                     });
             });
 
-            ui.checkbox(&mut self.download_entire_depot, "Ignore changes and download entire depot");
+            ui.checkbox(&mut depot_downloader_settings.download_entire_depot, "Ignore changes and download entire depot");
+            ui.checkbox(&mut depot_downloader_settings.download_manifest, "Download manifest");
             ui.checkbox(&mut self.compress_files, "Compress files after downloading");
 
             ui.horizontal(|ui| {
@@ -209,10 +208,9 @@ impl CreateUpdateUI {
                     let receiver = self.channels.input_receiver.clone();
                     let path_sender = self.channels.depot_downloader_path_sender.clone();
                     let stdio_sender = self.channels.output_sender.clone();
-                    let download_entire_depot = self.download_entire_depot;
                     self.child_process_running = true;
                     thread::spawn(move || {
-                        let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender, download_entire_depot);
+                        let status = download_changes(&changes, &depot_downloader_settings, sender, receiver, stdio_sender);
                         let _ = path_sender.send(status);
                     });
                 }
@@ -227,16 +225,23 @@ impl CreateUpdateUI {
 
         if let Ok(status) = self.channels.depot_downloader_path_receiver.try_recv() {
             match status {
-                Ok(path) => {
+                Ok(download_path) => {
                     let _ = self.channels.output_sender.send("Depot Downloader exited.\n".to_string());
-                    compression_settings.download_path = path.clone();
+                    compression_settings.download_path = download_path.clone();
                     // Copy JSON changes file to download path
-                    if !self.download_entire_depot {
-                        let installer_path = path.join(".RedAlt-SteamUp-Installer");
+                    if !depot_downloader_settings.download_entire_depot {
+                        let installer_path = download_path.join(".RedAlt-SteamUp-Installer");
                         let _ = create_dir(&installer_path);
                         if let Some(file) = &self.changes_json_file {
                             let changes_path = installer_path.join(file.file_name().unwrap());
                             let _ = std::fs::copy(file, changes_path).unwrap();
+                        }
+
+                        if depot_downloader_settings.download_manifest {
+                            let _ = std::fs::rename(
+                                download_path.join(format!("manifest_{}_{}.txt", self.changes.depot, self.changes.manifest)),
+                                installer_path.join(format!("manifest_{}_{}.txt", self.changes.depot, self.changes.manifest))
+                            );
                         }
                         match self.target_os {
                             TargetOS::Windows => {
@@ -345,13 +350,13 @@ impl CreateUpdateUI {
                     command.args(["--upload", "disk_upload"]);
                     for entry in current_dir().unwrap().join("Completed").read_dir().unwrap().flatten() {
                         if entry.file_name().to_str().unwrap().contains(download_path.file_name().unwrap().to_str().unwrap()) {
-                           if entry.file_type().unwrap().is_file() {
-                               command.arg(entry.path());
-                           } else if entry.file_type().unwrap().is_dir() {
-                               for file in entry.path().read_dir().unwrap().flatten() {
-                                   command.arg(file.path());
-                               }
-                           }
+                            if entry.file_type().unwrap().is_file() {
+                                command.arg(entry.path());
+                            } else if entry.file_type().unwrap().is_dir() {
+                                for file in entry.path().read_dir().unwrap().flatten() {
+                                    command.arg(file.path());
+                                }
+                            }
                         }
                     }
                     println!("{:?}", command);

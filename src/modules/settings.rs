@@ -5,7 +5,7 @@ use eframe::egui::{ComboBox, Context, Slider, TextEdit, Ui};
 use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct SettingsUI {
