@@ -67,6 +67,7 @@ pub fn download_changes(
     let download_path = current_dir().unwrap().to_path_buf().join("Downloads")
         .join(format!("{} - Depot {} (Build {} to {})",
                       changes.name, changes.depot, changes.initial_build, changes.final_build));
+    let download_path_clone = download_path.clone();
     // Run Depot Downloader
     let mut command = Command::new("./DepotDownloader.exe");
     command
@@ -154,7 +155,7 @@ pub fn download_changes(
         s.spawn(move || loop {
             match child.try_wait() {
                 Ok(Some(_exit_status)) => {
-                    *result_clone.lock().unwrap() = Ok(download_path.clone());
+                    *result_clone.lock().unwrap() = Ok(download_path_clone);
                     break;
                 },
                 Ok(None) => {
@@ -179,16 +180,13 @@ pub fn download_changes(
     });
     if settings.download_manifest {
         let _ = output_sender.send("Downloading manifest...\n".to_string());
-        let _ = download_manifest(changes, settings);
+        let _ = download_manifest(download_path, changes, settings);
         let _ = output_sender.send("Downloaded manifest.\n".to_string());
     }
     Arc::into_inner(result).unwrap().into_inner().unwrap()
 }
 
-pub fn download_manifest(changes: &Changes, settings: &DepotDownloaderSettings) -> std::io::Result<()> {
-    let download_path = current_dir().unwrap().to_path_buf().join("Downloads")
-        .join(format!("{} - Depot {} (Build {} to {})",
-                      changes.name, changes.depot, changes.initial_build, changes.final_build));
+pub fn download_manifest(download_path: PathBuf, changes: &Changes, settings: &DepotDownloaderSettings) -> std::io::Result<()> {
     // Run Depot Downloader
     let mut command = Command::new("./DepotDownloader.exe");
     command
