@@ -353,6 +353,8 @@ impl SettingsUI {
             }
         });
 
+        ui.hyperlink_to("Download MultiUp Direct", "https://cs.rin.ru/forum/viewtopic.php?p=2822500");
+
         if let Some(dialog) = &mut self.compression_settings.multiup_direct_file_dialog {
             if dialog.show(ui.ctx()).selected() {
                 if let Some(file) = dialog.path() {
