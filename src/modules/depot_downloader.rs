@@ -8,11 +8,16 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use aes_gcm::aead::generic_array::GenericArray;
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(default)]
 pub struct DepotDownloaderSettings {
+    pub encryption_key: [u8; 32],
+    pub username_nonce: [u8; 12],
+    pub encrypted_username: Vec<u8>,
     // Used by Depot Downloader
+    #[serde(skip)]
     pub username: String,
     #[serde(skip)]
     pub password: String,
@@ -33,6 +38,9 @@ pub struct DepotDownloaderSettings {
 impl Default for DepotDownloaderSettings {
     fn default() -> Self {
         Self {
+            encryption_key: [0; 32],
+            username_nonce: [0; 12],
+            encrypted_username: Vec::new(),
             username: String::new(),
             password: String::new(),
             max_servers: 20,

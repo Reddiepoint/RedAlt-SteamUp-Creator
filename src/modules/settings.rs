@@ -5,7 +5,10 @@ use eframe::egui::{ComboBox, Context, Slider, TextEdit, Ui};
 use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
+use std::io::Read;
 use std::path::Path;
+use aes_gcm::{AeadCore, Aes256Gcm, Key, KeyInit};
+use aes_gcm::aead::{Aead, Nonce, OsRng};
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct SettingsUI {
@@ -26,16 +29,47 @@ impl SettingsUI {
             let settings: SettingsUI = serde_json::from_reader(&mut file).unwrap_or_default();
             self.depot_downloader_settings = settings.depot_downloader_settings;
             self.compression_settings = settings.compression_settings;
+
+            // Decrypt username
+            let key = &self.depot_downloader_settings.encryption_key;
+            let nonce = Nonce::<Aes256Gcm>::from_slice(&self.depot_downloader_settings.username_nonce);
+            if key.is_empty() || nonce.is_empty() {
+                return;
+            }
+
+            let key = Key::<Aes256Gcm>::from_slice(key);
+            let cipher = Aes256Gcm::new(&key);
+
+            let decryption = cipher.decrypt(&nonce, self.depot_downloader_settings.encrypted_username.as_ref());
+            match decryption {
+                Ok(decrypted_username) => {
+                    self.depot_downloader_settings.username = String::from_utf8(decrypted_username).unwrap();
+                }
+                Err(_) => {}
+            }
         }
     }
 
     fn set_settings(&mut self) {
-        let username = self.depot_downloader_settings.username.clone();
-        if !self.depot_downloader_settings.remember_credentials {
-            self.depot_downloader_settings.username = String::new();
+        // let username = self.depot_downloader_settings.username.clone();
+        if self.depot_downloader_settings.remember_credentials {
+            let key = Aes256Gcm::generate_key(OsRng);
+            let nonce = Aes256Gcm::generate_nonce(OsRng);
+            let cipher = Aes256Gcm::new(&key);
+            let decrypted_username = self.depot_downloader_settings.username.clone();
+            let encrypted_username = cipher.encrypt(&nonce, decrypted_username.as_bytes());
+            self.depot_downloader_settings.encryption_key = key.as_slice().to_owned().try_into().unwrap();
+            self.depot_downloader_settings.username_nonce = nonce.as_slice().to_owned().try_into().unwrap();
+            self.depot_downloader_settings.encrypted_username = encrypted_username.unwrap();
+
+            // self.depot_downloader_settings.username = String::new();
+        } else {
+            self.depot_downloader_settings.encryption_key = [0; 32];
+            self.depot_downloader_settings.username_nonce = [0; 12];
+            self.depot_downloader_settings.encrypted_username = Vec::new();
         }
         let _ = std::fs::write("settings.json", serde_json::to_string_pretty(&self).unwrap());
-        self.depot_downloader_settings.username = username;
+        // self.depot_downloader_settings.username = username;
     }
 
     pub fn display(_ctx: &Context, ui: &mut Ui, settings_ui: &mut SettingsUI) {
