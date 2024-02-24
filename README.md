@@ -1,26 +1,25 @@
-# Prerequisites
+# Homepage
 
-- Windows
-- Script manager
-- Depot Downloader
-- 7-zip / WinRAR
+https://cs.rin.ru/forum/viewtopic.php?f=14&t=138413
 
-# Instructions
+# Documentation
 
-1. Download [RedAlt SteamUp Creator](https://github.com/Reddiepoint/RedAlt-SteamUp-Creator/releases/latest),
-   and [Depot Downloader](https://github.com/SteamRE/DepotDownloader/releases/latest) and install
-   RedAlt-SteamDB-Changelist-Grabber.user.js with a script manager such as Violentmonkey.
-    - Put the Creator and Depot Downloader in the same folder.
+https://reddiepoint.github.io/RedAlt-SteamUp-Documentation/
 
-2. Run RedAlt SteamUp Creator and check for updates to download RedAlt SteamUp Installer.
+# What is RedAlt SteamUp Creator
 
-3. Get the changes for a depot from SteamDB.
-    - Go to https://steamdb.info/app/{APP}/patchnotes/ and click the "Get changes" button.
-    - Choose a depot and select the build IDs (double-click the box to get a list of builds).
-    - Note: The script may have problems with Edge. Try Firefox if the script doesn't work properly.
+RedAlt SteamUp Creator provides users with a convenient alternative for creating and installing Steam updates without
+the need for xDelta patches. It downloads the files changed between builds, listed in the SteamDB changelist, with Depot
+Downloader. Updates created using RedAlt SteamUp Creator allow for updating from any build between the specified initial
+build, to the final build. For example, if the update was created for Build 10000000 to Build 10000010, then the update
+would be compatible with builds 10000000-10000009 (although some files would be redundant).
 
-4. Open the resulting JSON file with RedAlt SteamUp Creator.
+# Prerequisites for using RedAlt SteamUp Creator
 
-5. Download the files for the changes with RedAlt SteamUp Creator.
-    - The downloaded files will be in the `Downloads` folder.
-    - The archives will appear in the `Completed` folder.
+- Windows.
+- Script manager (see [Violentmonkey](https://github.com/Violentmonkey/Violentmonkey)).
+- [Depot Downloader](https://github.com/SteamRE/DepotDownloader/releases/latest).
+- 7-zip/WinRAR (other programs can be used, but only with manual compression).
+
+For instructions on how to use RedAlt SteamUp Creator, see
+the [instructions](https://reddiepoint.github.io/RedAlt-SteamUp-Documentation/using-the-creator.html).
