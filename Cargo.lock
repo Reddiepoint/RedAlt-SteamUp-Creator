@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "RedAlt-SteamUp-Creator"
-version = "1.2.0"
+version = "1.2.1-beta.1"
 dependencies = [
  "aes-gcm",
  "crossbeam-channel",

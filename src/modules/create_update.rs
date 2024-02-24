@@ -185,21 +185,21 @@ impl CreateUpdateUI {
 
     fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &mut DepotDownloaderSettings,
                               compression_settings: &mut CompressionSettings, tab_bar: &mut TabBar) {
+        ui.horizontal(|ui| {
+            ui.label("Target OS: ");
+            ComboBox::from_id_source("Target OS").selected_text(format!("{}", self.target_os))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.target_os, TargetOS::Windows, "Windows");
+                    ui.selectable_value(&mut self.target_os, TargetOS::Linux, "Linux");
+                    ui.selectable_value(&mut self.target_os, TargetOS::Mac, "Mac");
+                });
+        });
+
+        ui.checkbox(&mut depot_downloader_settings.download_entire_depot, "Ignore changes and download entire depot");
+        ui.checkbox(&mut depot_downloader_settings.download_manifest, "Download manifest");
+        ui.checkbox(&mut self.compress_files, "Compress files after downloading");
+
         if !depot_downloader_settings.username.is_empty() && (!depot_downloader_settings.password.is_empty() || depot_downloader_settings.remember_credentials) {
-            ui.horizontal(|ui| {
-                ui.label("Target OS: ");
-                ComboBox::from_id_source("Target OS").selected_text(format!("{}", self.target_os))
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut self.target_os, TargetOS::Windows, "Windows");
-                        ui.selectable_value(&mut self.target_os, TargetOS::Linux, "Linux");
-                        ui.selectable_value(&mut self.target_os, TargetOS::Mac, "Mac");
-                    });
-            });
-
-            ui.checkbox(&mut depot_downloader_settings.download_entire_depot, "Ignore changes and download entire depot");
-            ui.checkbox(&mut depot_downloader_settings.download_manifest, "Download manifest");
-            ui.checkbox(&mut self.compress_files, "Compress files after downloading");
-
             ui.horizontal(|ui| {
                 if ui.add_enabled(!self.child_process_running, Button::new(format!("Download changes as {}", depot_downloader_settings.username))).clicked() {
                     let changes = self.changes.clone();
@@ -219,7 +219,7 @@ impl CreateUpdateUI {
                     ui.spinner();
                 }
             });
-        } else if depot_downloader_settings.password.is_empty() && !depot_downloader_settings.remember_credentials && ui.button("Login").clicked() {
+        } else if ui.button("Login").clicked() {
             *tab_bar = TabBar::Settings;
         }
 
