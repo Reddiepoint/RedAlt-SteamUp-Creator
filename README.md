@@ -19,7 +19,7 @@ would be compatible with builds 10000000-10000009 (although some files would be 
 - Windows.
 - Script manager (see [Violentmonkey](https://github.com/Violentmonkey/Violentmonkey)).
 - [Depot Downloader](https://github.com/SteamRE/DepotDownloader/releases/latest).
-- 7-zip/WinRAR (other programs can be used, but only with manual compression).
+- 7-Zip/WinRAR (other programs can be used, but only with manual compression).
 
 For instructions on how to use RedAlt SteamUp Creator, see
 the [instructions](https://reddiepoint.github.io/RedAlt-SteamUp-Documentation/using-the-creator.html).
