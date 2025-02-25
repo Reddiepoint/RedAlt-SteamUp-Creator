@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     1.0.1
+// @version     1.1.0
 // @author      Reddiepoint
 // @description Aggregates the changes for a specified depot between different builds.
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/RedAlt-SteamDB-Changelist-Grabber.user.js
@@ -175,7 +175,25 @@ if (window.location.href.includes("steamdb.info/app/")) {
     styleSheet.innerText = css;
     document.head.appendChild(styleSheet);
 
+    // Setup observer for #js-builds
+    const observer = new MutationObserver((mutations) => {
+        const jsBuilds = document.querySelector("#js-builds");
+        if (jsBuilds !== null) {
+            observer.disconnect(); // Stop observing to prevent multiple runs
+            setupGetChanges(); // Run the setupGetChanges function
+        }
+    });
+
+    observer.observe(document, {
+        childList: true,
+        subtree: true,
+    });
+}
+
+function setupGetChanges() {
+    console.log("Getting builds")
     const buildIDs = getBuildIDs();
+    console.log("Got builds")
     // Create modal content HTML
     const modalHTML = `
     <div id="changelogModal" class="modal" style="display: none;">
@@ -205,7 +223,7 @@ if (window.location.href.includes("steamdb.info/app/")) {
     document.body.insertAdjacentHTML("beforeend", modalHTML);
 
     // Add button
-    const refElement = document.querySelector("#main > div.container > div:nth-child(5) > a");
+    const refElement = document.querySelector("#js-patchnotes > div:nth-child(5) > h2");
     const newDiv = document.createElement("div");
     const button = document.createElement("button");
     button.textContent = "Get changes";
@@ -239,13 +257,12 @@ if (window.location.href.includes("steamdb.info/app/")) {
     document.getElementById("getChangesBtn").addEventListener("click", getChanges);
 }
 
-
 function getChanges() {
     const getChangesBtn = document.querySelector("#getChangesBtn");
 
-    let title = document.querySelector("#main > div.patchnotes-header > div > div:nth-child(1) > h1 > a");
+    const title = document.querySelector("#main > div div.flex-grow > h1");
     const appName = title.textContent;
-    const appID = title.getAttribute("data-appid")
+    const appID = document.querySelector("#main > div").getAttribute("data-appid")
 
     let buildID1 = document.getElementById("buildID1").value;
     let buildID2 = document.getElementById("buildID2").value;
