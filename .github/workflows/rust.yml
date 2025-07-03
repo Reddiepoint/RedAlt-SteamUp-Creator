@@ -37,7 +37,7 @@ jobs:
           files: target/release/RedAlt-SteamUp-Creator.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+# TODO: Add Linux and Mac options
 #  build-lin:
 #    runs-on: ubuntu-latest
 #
