@@ -292,8 +292,13 @@ impl HelpUI {
             .current_version(&creator_current_version)
             .build()?
             .get_latest_release()?;
-        
-        let mut command = Command::new("./RedAlt-SteamUp-Installer");
+
+        let installer_command = match self_update::get_target() {
+            "x86_64-unknown-linux-gnu" => "./RedAlt-SteamUp-Installer_amd64",
+            "x86_64-apple-darwin" => "./RedAlt-SteamUp-Installer_darwin",
+            _ => "./RedAlt-SteamUp-Installer",
+        };
+        let mut command = Command::new(installer_command);
         command
             .stdout(Stdio::piped())
             .arg("--version");
