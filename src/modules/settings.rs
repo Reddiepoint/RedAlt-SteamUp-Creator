@@ -115,11 +115,6 @@ impl SettingsUI {
                     Subsequent logins require the username only.)");
 
         ui.horizontal(|ui| {
-            ui.label("Max number of server connections:");
-            ui.add(Slider::new(&mut self.depot_downloader_settings.max_servers, 1..=32));
-        });
-
-        ui.horizontal(|ui| {
             ui.label("Max number of concurrent chunks downloaded:");
             ui.add(Slider::new(&mut self.depot_downloader_settings.max_downloads, 1..=32));
         });
