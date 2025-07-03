@@ -217,7 +217,7 @@ impl CreateUpdateUI {
                 let num_columns = lengths.iter().filter(|&&x| x > 0).count();
                 let max_length = lengths.iter().max();
 
-                ScrollArea::both().id_source("Changes").max_height(ui.available_height() / 3.0).show(ui, |ui| {
+                ScrollArea::both().id_salt("Changes").max_height(ui.available_height() / 3.0).show(ui, |ui| {
                     ui.columns(num_columns, |columns| {
                         if !self.changes.added.is_empty() {
                             columns[0].heading("New files");
@@ -248,7 +248,7 @@ impl CreateUpdateUI {
                               compression_settings: &mut CompressorSettings, tab_bar: &mut TabBar) {
         ui.horizontal(|ui| {
             ui.label("Target OS: ");
-            ComboBox::from_id_source("Target OS").selected_text(format!("{}", self.target_os))
+            ComboBox::from_id_salt("Target OS").selected_text(format!("{}", self.target_os))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.target_os, TargetOS::Windows, "Windows");
                     ui.selectable_value(&mut self.target_os, TargetOS::Linux, "Linux");
@@ -390,7 +390,7 @@ impl CreateUpdateUI {
 
     fn display_stdout(&mut self, ui: &mut Ui) {
         let mut output = self.stdout.clone();
-        ScrollArea::vertical().id_source("Standard Output").max_height(ui.available_height() * 2.0 / 3.0).show(ui, |ui| {
+        ScrollArea::vertical().id_salt("Standard Output").max_height(ui.available_height() * 2.0 / 3.0).show(ui, |ui| {
             ui.add(TextEdit::multiline(&mut output).desired_width(ui.available_width()).cursor_at_end(true));
             while let Ok(output) = self.channels.output_receiver.try_recv() {
                 self.stdout += &output;
