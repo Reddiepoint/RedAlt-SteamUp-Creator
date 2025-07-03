@@ -89,7 +89,6 @@ const HOMEPAGE: &str = "https://cs.rin.ru/forum/viewtopic.php?f=14&t=138413";
 const DOCUMENTATION: &str = "https://reddiepoint.github.io/RedAlt-SteamUp-Documentation/using-the-creator.html";
 
 impl HelpUI {
-    pub fn display(&mut self, ctx: &Context) {}
     pub fn show_help_window(&mut self, ctx: &Context) {
         Window::new("Help").open(&mut self.show_help).show(ctx, |ui| ScrollArea::vertical().min_scrolled_height(ui.available_height()).id_salt("Help").show(ui, |ui| {
             ui.horizontal(|ui| {
@@ -108,7 +107,7 @@ impl HelpUI {
                         UpdateStatus::Unchecked | UpdateStatus::Checking => "Checking for updates...".to_string(),
                         UpdateStatus::Outdated => "There is an update available!".to_string(),
                         UpdateStatus::Updated => "You are up-to-date!".to_string(),
-                        UpdateStatus::Error(error) => format!("Update failed: {}", error)
+                        UpdateStatus::Error(error) => format!("Update failed: {error}")
                     }
                 });
 
@@ -371,7 +370,7 @@ impl HelpUI {
                     let name = if platform.is_empty() {
                         "RedAlt-SteamUp-Installer.exe".to_string()
                     } else {
-                        format!("RedAlt-SteamUp-Installer_{}", platform)
+                        format!("RedAlt-SteamUp-Installer_{platform}")
                     };
                     let bin_name = std::path::PathBuf::from(&name);
                     self_update::Extract::from_source(&temp_zip_path)
