@@ -3,6 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
+use which::which;
 use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
 
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
@@ -23,7 +24,7 @@ impl Display for Archiver {
 
 #[derive(Deserialize, Serialize)]
 #[serde(default)]
-pub struct CompressionSettings {
+pub struct CompressorSettings {
     pub download_path: PathBuf,
     pub archiver: Archiver,
     #[serde(skip)]
@@ -37,12 +38,12 @@ pub struct CompressionSettings {
     pub multiup_direct_file_dialog: Option<FileDialog>,
 }
 
-impl Default for CompressionSettings {
+impl Default for CompressorSettings {
     fn default() -> Self {
         Self {
             download_path: current_dir().unwrap().to_path_buf(),
             archiver: {
-                let paths = CompressionSettings::get_detected_paths();
+                let paths = CompressorSettings::get_detected_paths();
                 let mut archiver = Archiver::SevenZip;
                 for path in paths.into_iter().flatten() {
                     if path.contains("7z.exe") {
@@ -74,27 +75,16 @@ impl Default for CompressionSettings {
     }
 }
 
-impl CompressionSettings {
+impl CompressorSettings {
     pub fn get_detected_paths() -> Vec<Option<String>> {
-        panic!();
-        // let mut paths: Vec<Option<String>> = Vec::new();
-        // // Try to find 7zip in the registry
-        // let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-        // let subkey = r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths";
-        // 
-        // let keys = [(format!("{}\\7zFM.exe", subkey), "7z.exe"), (format!("{}\\WinRAR.exe", subkey), "\\WinRAR.exe")];
-        // for (key, file) in keys {
-        //     if let Ok(key) = hklm.open_subkey(key) {
-        //         if let Ok(path) = key.get_value("Path") {
-        //             let mut path: String = path;
-        //             path += file;
-        //             paths.push(Some(path));
-        //         } else {
-        //             paths.push(None);
-        //         }
-        //     }
-        // }
-        // paths
+        let mut paths: Vec<Option<String>> = Vec::new();
+        let compressors = ["7z", "WinRAR"];
+        for compressor in compressors {
+            if let Ok(path) = which(compressor) {
+                paths.push(Some(path.to_str().unwrap().to_string()));
+            }
+        }
+        paths
     }
 }
 

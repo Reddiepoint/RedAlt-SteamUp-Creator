@@ -1,4 +1,4 @@
-use crate::modules::compression::{Archiver, CompressionSettings};
+use crate::modules::compression::{Archiver, CompressorSettings};
 use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
 use crate::modules::depot_downloader::{DepotDownloaderSettings, EncryptionKey};
 use eframe::egui::{ComboBox, Context, Slider, TextEdit, Ui};
@@ -12,7 +12,7 @@ use aes_gcm::aead::{Aead, Nonce, OsRng};
 #[derive(Default, Deserialize, Serialize)]
 pub struct SettingsUI {
     pub depot_downloader_settings: DepotDownloaderSettings,
-    pub compression_settings: CompressionSettings,
+    pub compression_settings: CompressorSettings,
     #[serde(skip)]
     pub read_settings: bool,
 }
