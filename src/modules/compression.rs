@@ -3,8 +3,6 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
-use winreg::enums::HKEY_LOCAL_MACHINE;
-use winreg::RegKey;
 use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
 
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
@@ -78,24 +76,25 @@ impl Default for CompressionSettings {
 
 impl CompressionSettings {
     pub fn get_detected_paths() -> Vec<Option<String>> {
-        let mut paths: Vec<Option<String>> = Vec::new();
-        // Try to find 7zip in the registry
-        let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-        let subkey = r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths";
-
-        let keys = [(format!("{}\\7zFM.exe", subkey), "7z.exe"), (format!("{}\\WinRAR.exe", subkey), "\\WinRAR.exe")];
-        for (key, file) in keys {
-            if let Ok(key) = hklm.open_subkey(key) {
-                if let Ok(path) = key.get_value("Path") {
-                    let mut path: String = path;
-                    path += file;
-                    paths.push(Some(path));
-                } else {
-                    paths.push(None);
-                }
-            }
-        }
-        paths
+        panic!();
+        // let mut paths: Vec<Option<String>> = Vec::new();
+        // // Try to find 7zip in the registry
+        // let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+        // let subkey = r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths";
+        // 
+        // let keys = [(format!("{}\\7zFM.exe", subkey), "7z.exe"), (format!("{}\\WinRAR.exe", subkey), "\\WinRAR.exe")];
+        // for (key, file) in keys {
+        //     if let Ok(key) = hklm.open_subkey(key) {
+        //         if let Ok(path) = key.get_value("Path") {
+        //             let mut path: String = path;
+        //             path += file;
+        //             paths.push(Some(path));
+        //         } else {
+        //             paths.push(None);
+        //         }
+        //     }
+        // }
+        // paths
     }
 }
 

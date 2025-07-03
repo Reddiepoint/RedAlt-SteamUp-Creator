@@ -4,7 +4,6 @@ use crate::modules::compression::CompressionSettings;
 use crossbeam_channel::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
-use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
@@ -61,104 +60,105 @@ impl SevenZipSettings {
         stdin_receiver: Receiver<String>,
         stdout_sender: Sender<String>,
     ) -> std::io::Result<()> {
+        panic!();
         let _ = stdout_sender.send("\nCompressing files with 7-Zip...\n".to_string());
-        let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
-        let mut command = Command::new(archiver_path);
-        let _ = std::fs::remove_dir_all(download_path.join(".DepotDownloader"));
-        let _ = std::fs::create_dir("./Completed");
-        command
-            .creation_flags(0x08000000)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .arg("a")
-            .arg(format!("-w{}", current_dir().unwrap().join("Completed").to_str().unwrap()))
-            .arg(format!("-mx{}", self.compression_level))
-            .arg(format!("-md{}m", self.dictionary_size))
-            .arg(format!("-mfb{}", self.word_size))
-            .arg(format!("-ms{}{}", self.solid_block_size, self.solid_block_size_unit))
-            .arg(format!("-mmt{}", self.number_of_cpu_threads));
-        if self.split_size > 0 {
-            command.arg(format!("-v{}{}", self.split_size, self.split_size_unit));
-        }
-        if !self.password.is_empty() {
-            command.arg(format!("-p{}", self.password));
-        }
-        let split_folder = if self.split_size > 0 {
-            download_path.file_name().unwrap().to_str().unwrap()
-        } else {
-            ""
-        };
-        command
-            .arg(format!("{}.7z", current_dir().unwrap().join("Completed").join(split_folder).join(download_path.file_name().unwrap()).to_str().unwrap()))
-            .arg(download_path);
-        let mut child = command.spawn()?;
-
-        let result = Arc::new(Mutex::new(Err(std::io::Error::new(std::io::ErrorKind::Other, "Unknown error"))));
-
-        thread::scope(|s| {
-            if let Some(mut stderr) = child.stderr.take() {
-                let stdo_sender = stdout_sender.clone();
-                let input_window_opened_sender = input_window_opened_sender.clone();
-                s.spawn(move || {
-                    let mut buffer = [0; 1024];
-                    loop {
-                        match stderr.read(&mut buffer) {
-                            Ok(n) if n > 0 => {
-                                let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
-                            }
-                            _ => break,
-                        }
-                    }
-                });
-            }
-
-            if let Some(mut stdout) = child.stdout.take() {
-                let stdo_sender = stdout_sender.clone();
-                let input_window_opened_sender = input_window_opened_sender.clone();
-                s.spawn(move || {
-                    let mut buffer = [0; 1024];
-                    loop {
-                        match stdout.read(&mut buffer) {
-                            Ok(n) if n > 0 => {
-                                let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
-                            }
-                            _ => break,
-                        }
-                    }
-                });
-            }
-
-            let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
-            let result_clone = Arc::clone(&result);
-            s.spawn(move || loop {
-                match child.try_wait() {
-                    Ok(Some(_exit_status)) => {
-                        *result_clone.lock().unwrap() = Ok(());
-                        break;
-                    },
-                    Ok(None) => {
-                        match stdin_receiver.try_recv() {
-                            Ok(code) => {
-                                let stdin = stdin.clone();
-                                let code = format!("{}\n", code);
-                                stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
-                                stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
-                            },
-                            Err(_) => {
-                                thread::sleep(std::time::Duration::from_millis(100));
-                            }
-                        }
-                    }
-                    Err(error) => {
-                        *result_clone.lock().unwrap() = Err(error);
-                        break;
-                    }
-                }
-            });
-        });
-
-        Arc::into_inner(result).unwrap().into_inner().unwrap()
+        // let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
+        // let mut command = Command::new(archiver_path);
+        // let _ = std::fs::remove_dir_all(download_path.join(".DepotDownloader"));
+        // let _ = std::fs::create_dir("./Completed");
+        // command
+        //     .creation_flags(0x08000000)
+        //     .stdin(Stdio::piped())
+        //     .stdout(Stdio::piped())
+        //     .stderr(Stdio::piped())
+        //     .arg("a")
+        //     .arg(format!("-w{}", current_dir().unwrap().join("Completed").to_str().unwrap()))
+        //     .arg(format!("-mx{}", self.compression_level))
+        //     .arg(format!("-md{}m", self.dictionary_size))
+        //     .arg(format!("-mfb{}", self.word_size))
+        //     .arg(format!("-ms{}{}", self.solid_block_size, self.solid_block_size_unit))
+        //     .arg(format!("-mmt{}", self.number_of_cpu_threads));
+        // if self.split_size > 0 {
+        //     command.arg(format!("-v{}{}", self.split_size, self.split_size_unit));
+        // }
+        // if !self.password.is_empty() {
+        //     command.arg(format!("-p{}", self.password));
+        // }
+        // let split_folder = if self.split_size > 0 {
+        //     download_path.file_name().unwrap().to_str().unwrap()
+        // } else {
+        //     ""
+        // };
+        // command
+        //     .arg(format!("{}.7z", current_dir().unwrap().join("Completed").join(split_folder).join(download_path.file_name().unwrap()).to_str().unwrap()))
+        //     .arg(download_path);
+        // let mut child = command.spawn()?;
+        // 
+        // let result = Arc::new(Mutex::new(Err(std::io::Error::new(std::io::ErrorKind::Other, "Unknown error"))));
+        // 
+        // thread::scope(|s| {
+        //     if let Some(mut stderr) = child.stderr.take() {
+        //         let stdo_sender = stdout_sender.clone();
+        //         let input_window_opened_sender = input_window_opened_sender.clone();
+        //         s.spawn(move || {
+        //             let mut buffer = [0; 1024];
+        //             loop {
+        //                 match stderr.read(&mut buffer) {
+        //                     Ok(n) if n > 0 => {
+        //                         let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
+        //                     }
+        //                     _ => break,
+        //                 }
+        //             }
+        //         });
+        //     }
+        // 
+        //     if let Some(mut stdout) = child.stdout.take() {
+        //         let stdo_sender = stdout_sender.clone();
+        //         let input_window_opened_sender = input_window_opened_sender.clone();
+        //         s.spawn(move || {
+        //             let mut buffer = [0; 1024];
+        //             loop {
+        //                 match stdout.read(&mut buffer) {
+        //                     Ok(n) if n > 0 => {
+        //                         let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
+        //                     }
+        //                     _ => break,
+        //                 }
+        //             }
+        //         });
+        //     }
+        // 
+        //     let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
+        //     let result_clone = Arc::clone(&result);
+        //     s.spawn(move || loop {
+        //         match child.try_wait() {
+        //             Ok(Some(_exit_status)) => {
+        //                 *result_clone.lock().unwrap() = Ok(());
+        //                 break;
+        //             },
+        //             Ok(None) => {
+        //                 match stdin_receiver.try_recv() {
+        //                     Ok(code) => {
+        //                         let stdin = stdin.clone();
+        //                         let code = format!("{}\n", code);
+        //                         stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
+        //                         stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
+        //                     },
+        //                     Err(_) => {
+        //                         thread::sleep(std::time::Duration::from_millis(100));
+        //                     }
+        //                 }
+        //             }
+        //             Err(error) => {
+        //                 *result_clone.lock().unwrap() = Err(error);
+        //                 break;
+        //             }
+        //         }
+        //     });
+        // });
+        // 
+        // Arc::into_inner(result).unwrap().into_inner().unwrap()
     }
 }
 
@@ -207,109 +207,110 @@ impl WinRARSettings {
         stdin_receiver: Receiver<String>,
         stdo_sender: Sender<String>,
     ) -> std::io::Result<()> {
+        panic!();
         let _ = stdo_sender.send("\nCompressing files with WinRAR...\n".to_string());
-        let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
-        let mut command = Command::new(archiver_path);
-        let _ = std::fs::remove_dir_all(download_path.join(".DepotDownloader"));
-        let _ = std::fs::create_dir("./Completed");
-        command
-            .creation_flags(0x08000000)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .arg("a")
-            .arg(format!("-w{}", current_dir().unwrap().join("Completed").to_str().unwrap()))
-            .arg(format!("-m{}", self.compression_level))
-            .arg(format!("-md{}m", self.dictionary_size))
-            .arg(format!("-mt{}", self.number_of_cpu_threads));
-        if archiver_path.contains("WinRAR.exe") {
-            command.arg(format!("-af{}", self.archive_format));
-        }
-        if self.solid {
-            command.arg(format!("-s{}", if self.split_size > 0 { "v-" } else { "" }));
-        }
-        if self.split_size > 0 {
-            command.arg(format!("-v{}{}", self.split_size, self.split_size_unit));
-        }
-        if !self.password.is_empty() {
-            command.arg(format!("-p{}", self.password));
-        }
-        let split_folder = if self.split_size > 0 {
-            download_path.file_name().unwrap().to_str().unwrap()
-        } else {
-            ""
-        };
-        let _ = create_dir(current_dir().unwrap().join("Completed").join(split_folder));
-        command
-            .arg("-ep1")
-            .arg(format!("{}", current_dir().unwrap().join("Completed").join(split_folder).join(download_path.file_name().unwrap()).to_str().unwrap()))
-            .arg(download_path);
-        let mut child = command.spawn()?;
-
-        let result = Arc::new(Mutex::new(Err(std::io::Error::new(std::io::ErrorKind::Other, "Unknown error"))));
-
-        thread::scope(|s| {
-            if let Some(mut stderr) = child.stderr.take() {
-                let stdo_sender = stdo_sender.clone();
-                let input_window_opened_sender = input_window_opened_sender.clone();
-                s.spawn(move || {
-                    let mut buffer = [0; 1024];
-                    loop {
-                        match stderr.read(&mut buffer) {
-                            Ok(n) if n > 0 => {
-                                let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
-                            }
-                            _ => break,
-                        }
-                    }
-                });
-            }
-
-            if let Some(mut stdout) = child.stdout.take() {
-                let stdo_sender = stdo_sender.clone();
-                let input_window_opened_sender = input_window_opened_sender.clone();
-                s.spawn(move || {
-                    let mut buffer = [0; 1024];
-                    loop {
-                        match stdout.read(&mut buffer) {
-                            Ok(n) if n > 0 => {
-                                let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
-                            }
-                            _ => break,
-                        }
-                    }
-                });
-            }
-
-            let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
-            let result_clone = Arc::clone(&result);
-            s.spawn(move || loop {
-                match child.try_wait() {
-                    Ok(Some(_exit_status)) => {
-                        *result_clone.lock().unwrap() = Ok(());
-                        break;
-                    },
-                    Ok(None) => {
-                        match stdin_receiver.try_recv() {
-                            Ok(code) => {
-                                let stdin = stdin.clone();
-                                let code = format!("{}\n", code);
-                                stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
-                                stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
-                            },
-                            Err(_) => {
-                                thread::sleep(std::time::Duration::from_millis(100));
-                            }
-                        }
-                    }
-                    Err(error) => {
-                        *result_clone.lock().unwrap() = Err(error);
-                        break;
-                    }
-                }
-            });
-        });
-
-        Arc::into_inner(result).unwrap().into_inner().unwrap()
+        // let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
+        // let mut command = Command::new(archiver_path);
+        // let _ = std::fs::remove_dir_all(download_path.join(".DepotDownloader"));
+        // let _ = std::fs::create_dir("./Completed");
+        // command
+        //     .creation_flags(0x08000000)
+        //     .stdin(Stdio::piped())
+        //     .stdout(Stdio::piped())
+        //     .stderr(Stdio::piped())
+        //     .arg("a")
+        //     .arg(format!("-w{}", current_dir().unwrap().join("Completed").to_str().unwrap()))
+        //     .arg(format!("-m{}", self.compression_level))
+        //     .arg(format!("-md{}m", self.dictionary_size))
+        //     .arg(format!("-mt{}", self.number_of_cpu_threads));
+        // if archiver_path.contains("WinRAR.exe") {
+        //     command.arg(format!("-af{}", self.archive_format));
+        // }
+        // if self.solid {
+        //     command.arg(format!("-s{}", if self.split_size > 0 { "v-" } else { "" }));
+        // }
+        // if self.split_size > 0 {
+        //     command.arg(format!("-v{}{}", self.split_size, self.split_size_unit));
+        // }
+        // if !self.password.is_empty() {
+        //     command.arg(format!("-p{}", self.password));
+        // }
+        // let split_folder = if self.split_size > 0 {
+        //     download_path.file_name().unwrap().to_str().unwrap()
+        // } else {
+        //     ""
+        // };
+        // let _ = create_dir(current_dir().unwrap().join("Completed").join(split_folder));
+        // command
+        //     .arg("-ep1")
+        //     .arg(format!("{}", current_dir().unwrap().join("Completed").join(split_folder).join(download_path.file_name().unwrap()).to_str().unwrap()))
+        //     .arg(download_path);
+        // let mut child = command.spawn()?;
+        // 
+        // let result = Arc::new(Mutex::new(Err(std::io::Error::new(std::io::ErrorKind::Other, "Unknown error"))));
+        // 
+        // thread::scope(|s| {
+        //     if let Some(mut stderr) = child.stderr.take() {
+        //         let stdo_sender = stdo_sender.clone();
+        //         let input_window_opened_sender = input_window_opened_sender.clone();
+        //         s.spawn(move || {
+        //             let mut buffer = [0; 1024];
+        //             loop {
+        //                 match stderr.read(&mut buffer) {
+        //                     Ok(n) if n > 0 => {
+        //                         let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
+        //                     }
+        //                     _ => break,
+        //                 }
+        //             }
+        //         });
+        //     }
+        // 
+        //     if let Some(mut stdout) = child.stdout.take() {
+        //         let stdo_sender = stdo_sender.clone();
+        //         let input_window_opened_sender = input_window_opened_sender.clone();
+        //         s.spawn(move || {
+        //             let mut buffer = [0; 1024];
+        //             loop {
+        //                 match stdout.read(&mut buffer) {
+        //                     Ok(n) if n > 0 => {
+        //                         let _ = stdo_sender.send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
+        //                     }
+        //                     _ => break,
+        //                 }
+        //             }
+        //         });
+        //     }
+        // 
+        //     let stdin = Arc::new(Mutex::new(child.stdin.take().expect("Failed to take stdin")));
+        //     let result_clone = Arc::clone(&result);
+        //     s.spawn(move || loop {
+        //         match child.try_wait() {
+        //             Ok(Some(_exit_status)) => {
+        //                 *result_clone.lock().unwrap() = Ok(());
+        //                 break;
+        //             },
+        //             Ok(None) => {
+        //                 match stdin_receiver.try_recv() {
+        //                     Ok(code) => {
+        //                         let stdin = stdin.clone();
+        //                         let code = format!("{}\n", code);
+        //                         stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
+        //                         stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
+        //                     },
+        //                     Err(_) => {
+        //                         thread::sleep(std::time::Duration::from_millis(100));
+        //                     }
+        //                 }
+        //             }
+        //             Err(error) => {
+        //                 *result_clone.lock().unwrap() = Err(error);
+        //                 break;
+        //             }
+        //         }
+        //     });
+        // });
+        // 
+        // Arc::into_inner(result).unwrap().into_inner().unwrap()
     }
 }

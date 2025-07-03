@@ -18,6 +18,6 @@ fn main() {
     let _ = eframe::run_native(
         "RedAlt SteamUp Creator",
         options,
-        Box::new(|_cc| Box::<RedAltSteamUpCreator>::default()),
+        Box::new(|cc| Ok(Box::new(RedAltSteamUpCreator::new(cc)))),
     );
 }
