@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     1.1.0
+// @version     1.1.1
 // @author      Reddiepoint
 // @description Aggregates the changes for a specified depot between different builds.
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/RedAlt-SteamDB-Changelist-Grabber.user.js
@@ -260,9 +260,9 @@ function setupGetChanges() {
 function getChanges() {
     const getChangesBtn = document.querySelector("#getChangesBtn");
 
-    const title = document.querySelector("#main > div div.flex-grow > h1");
-    const appName = title.textContent;
-    const appID = document.querySelector("#main > div").getAttribute("data-appid")
+    const appName = document.querySelector("#main > div > div.header-wrapper > div > div.pagehead > div.pagehead-title > h1")
+        .firstChild.textContent.trim();
+    const appID = document.querySelector('table tr:first-child td:nth-child(2)').textContent;
 
     let buildID1 = document.getElementById("buildID1").value;
     let buildID2 = document.getElementById("buildID2").value;
