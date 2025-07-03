@@ -284,46 +284,43 @@ impl HelpUI {
     }
 
     fn check_for_updates() -> Result<((Release, String, bool), (Release, String, bool)), Box<dyn std::error::Error>> {
-        panic!();
-        // let creator_current_version = env!("CARGO_PKG_VERSION").to_string();
-        // let creator_update = self_update::backends::github::Update::configure()
-        //     .repo_owner("Reddiepoint")
-        //     .repo_name("RedAlt-SteamUp-Creator")
-        //     .target("")
-        //     .bin_name("RedAlt-SteamUp-Creator")
-        //     .current_version(&creator_current_version)
-        //     .build()?
-        //     .get_latest_release()?;
-        // 
-        // let mut command = Command::new("./RedAlt-SteamUp-Installer.exe");
-        // command
-        //     .creation_flags(0x08000000)
-        //     .stdout(Stdio::piped())
-        //     .arg("--version");
-        // let installer_current_version = match command.spawn() {
-        //     Ok(child) => {
-        //         let child = child.wait_with_output().unwrap();
-        //         String::from_utf8(child.stdout).unwrap().trim().to_string()
-        //     }
-        //     Err(_) => "0.0.0".to_string(),
-        // };
-        // 
-        // let installer_update = self_update::backends::github::Update::configure()
-        //     .repo_owner("Reddiepoint")
-        //     .repo_name("RedAlt-SteamUp-Installer")
-        //     .target("")
-        //     .bin_name("RedAlt-SteamUp-Installer")
-        //     .current_version(&installer_current_version)
-        //     .build()?
-        //     .get_latest_release()?;
-        // 
-        // let is_creator_update_greater = bump_is_greater(&creator_current_version, &creator_update.version).unwrap();
-        // let is_installer_update_greater = bump_is_greater(&installer_current_version, &installer_update.version).unwrap();
-        // 
-        // Ok((
-        //     (creator_update, creator_current_version, is_creator_update_greater),
-        //     (installer_update, installer_current_version, is_installer_update_greater)
-        // ))
+        let creator_current_version = env!("CARGO_PKG_VERSION").to_string();
+        let creator_update = self_update::backends::github::Update::configure()
+            .repo_owner("Reddiepoint")
+            .repo_name("RedAlt-SteamUp-Creator")
+            .bin_name("RedAlt-SteamUp-Creator")
+            .current_version(&creator_current_version)
+            .build()?
+            .get_latest_release()?;
+        
+        let mut command = Command::new("./RedAlt-SteamUp-Installer.exe");
+        command
+            .stdout(Stdio::piped())
+            .arg("--version");
+        let installer_current_version = match command.spawn() {
+            Ok(child) => {
+                let child = child.wait_with_output().unwrap();
+                String::from_utf8(child.stdout).unwrap().trim().to_string()
+            }
+            Err(_) => "0.0.0".to_string(),
+        };
+        
+        let installer_update = self_update::backends::github::Update::configure()
+            .repo_owner("Reddiepoint")
+            .repo_name("RedAlt-SteamUp-Installer")
+            .target("")
+            .bin_name("RedAlt-SteamUp-Installer")
+            .current_version(&installer_current_version)
+            .build()?
+            .get_latest_release()?;
+        
+        let is_creator_update_greater = bump_is_greater(&creator_current_version, &creator_update.version).unwrap();
+        let is_installer_update_greater = bump_is_greater(&installer_current_version, &installer_update.version).unwrap();
+        
+        Ok((
+            (creator_update, creator_current_version, is_creator_update_greater),
+            (installer_update, installer_current_version, is_installer_update_greater)
+        ))
     }
 
     fn update(app: AppType) -> Result<AppType, Box<dyn std::error::Error>> {

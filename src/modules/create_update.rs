@@ -10,7 +10,7 @@ use eframe::egui::{Button, ComboBox, Context, ScrollArea, TextEdit, Ui, Window};
 use egui_file::FileDialog;
 use crate::modules::app::TabBar;
 use crate::modules::changes::Changes;
-use crate::modules::compression::{Archiver, CompressionSettings};
+use crate::modules::compression::{Archiver, CompressorSettings};
 use crate::modules::depot_downloader::{DepotDownloaderSettings, download_changes, download_manifest};
 
 
@@ -94,7 +94,7 @@ impl Default for CreateUpdateUI {
 
 impl CreateUpdateUI {
     pub fn display(ctx: &Context, ui: &mut Ui, create_update_ui: &mut CreateUpdateUI,
-                   depot_downloader_settings: &mut DepotDownloaderSettings, compression_settings: &mut CompressionSettings,
+                   depot_downloader_settings: &mut DepotDownloaderSettings, compression_settings: &mut CompressorSettings,
                    tab_bar: &mut TabBar) {
         // Choose the JSON file
         create_update_ui.display_file_dialog(ctx, ui);
@@ -184,7 +184,7 @@ impl CreateUpdateUI {
     }
 
     fn display_download_stuff(&mut self, ui: &mut Ui, depot_downloader_settings: &mut DepotDownloaderSettings,
-                              compression_settings: &mut CompressionSettings, tab_bar: &mut TabBar) {
+                              compression_settings: &mut CompressorSettings, tab_bar: &mut TabBar) {
         ui.horizontal(|ui| {
             ui.label("Target OS: ");
             ComboBox::from_id_source("Target OS").selected_text(format!("{}", self.target_os))
@@ -339,7 +339,7 @@ impl CreateUpdateUI {
         });
     }
 
-    fn multiup_direct_button(&mut self, ui: &mut Ui, compression_settings: &mut CompressionSettings) {
+    fn multiup_direct_button(&mut self, ui: &mut Ui, compression_settings: &mut CompressorSettings) {
         // Check if there is an executable in the current directory
         if let Some(path) = &compression_settings.multiup_direct_path {
             if ui.button("Upload with MultiUp Direct").clicked() {
