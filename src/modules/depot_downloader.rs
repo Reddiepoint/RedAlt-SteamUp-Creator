@@ -7,7 +7,6 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use aes_gcm::aead::generic_array::GenericArray;
 
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -94,7 +93,7 @@ pub fn download_changes(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest])
-        .args(["-dir", &download_path.to_str().unwrap()]);
+        .args(["-dir", download_path.to_str().unwrap()]);
 
     if !settings.download_entire_depot {
         command.args(["-filelist", "files.txt"]);
@@ -120,7 +119,7 @@ pub fn download_changes(
         "Enter account password",
     ];
 
-    let result = Arc::new(Mutex::new(Err(std::io::Error::new(std::io::ErrorKind::Other, "Unknown error"))));
+    let result = Arc::new(Mutex::new(Err(std::io::Error::other("Unknown error"))));
 
     thread::scope(|s| {
         if let Some(mut stderr) = child.stderr.take() {
@@ -179,7 +178,7 @@ pub fn download_changes(
                     match input_receiver.try_recv() {
                         Ok(code) => {
                             let stdin = stdin.clone();
-                            let code = format!("{}\n", code);
+                            let code = format!("{code}\n");
                             stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
                             stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
                         },
@@ -211,7 +210,7 @@ pub fn download_manifest(download_path: PathBuf, changes: &Changes, settings: &D
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .args(["-app", &changes.app, "-depot", &changes.depot, "-manifest", &changes.manifest])
-        .args(["-dir", &download_path.to_str().unwrap()])
+        .args(["-dir", download_path.to_str().unwrap()])
         .arg("-manifest-only");
     
     

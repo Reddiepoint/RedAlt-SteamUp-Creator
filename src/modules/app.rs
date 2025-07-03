@@ -29,7 +29,7 @@ impl App for RedAltSteamUpCreator {
 }
 
 impl RedAltSteamUpCreator {
-    pub fn new(cc: &CreationContext) -> Self {
+    pub fn new(_cc: &CreationContext) -> Self {
         Self::default()
     }
     
@@ -63,7 +63,7 @@ impl RedAltSteamUpCreator {
         });
     }
 
-    fn display_menu_bar(&mut self, ctx: &Context, ui: &mut Ui) {
+    fn display_menu_bar(&mut self, _ctx: &Context, ui: &mut Ui) {
         menu::bar(ui, |ui| {
             ui.menu_button("Help", |ui| {
                 if ui.button("Show help").clicked() {

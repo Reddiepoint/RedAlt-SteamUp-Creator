@@ -1,5 +1,5 @@
 use std::env::current_dir;
-use std::fs::create_dir;
+use std::fs::{create_dir, remove_dir_all};
 use crate::modules::compression::CompressorSettings;
 use crossbeam_channel::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
@@ -63,8 +63,8 @@ impl SevenZipSettings {
         let _ = stdout_sender.send("\nCompressing files with 7-Zip...\n".to_string());
         let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
         let mut command = Command::new(archiver_path);
-        let _ = std::fs::remove_dir_all(download_path.join(".DepotDownloader"));
-        let _ = std::fs::create_dir("./Completed");
+        let _ = remove_dir_all(download_path.join(".DepotDownloader"));
+        let _ = create_dir("./Completed");
         command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -92,7 +92,7 @@ impl SevenZipSettings {
             .arg(download_path);
         let mut child = command.spawn()?;
         
-        let result = Arc::new(Mutex::new(Err(std::io::Error::new(std::io::ErrorKind::Other, "Unknown error"))));
+        let result = Arc::new(Mutex::new(Err(std::io::Error::other("Unknown error"))));
         
         thread::scope(|s| {
             if let Some(mut stderr) = child.stderr.take() {
@@ -139,7 +139,7 @@ impl SevenZipSettings {
                         match stdin_receiver.try_recv() {
                             Ok(code) => {
                                 let stdin = stdin.clone();
-                                let code = format!("{}\n", code);
+                                let code = format!("{code}\n");
                                 stdin.lock().expect("Failed to lock stdin").write_all(code.as_bytes()).expect("Failed to write to stdin");
                                 stdin.lock().expect("Failed to lock stdin").flush().expect("Failed to flush stdin");
                             },
@@ -208,8 +208,8 @@ impl WinRARSettings {
         let _ = stdo_sender.send("\nCompressing files with WinRAR...\n".to_string());
         let archiver_path = self.path.as_ref().unwrap().to_str().unwrap();
         let mut command = Command::new(archiver_path);
-        let _ = std::fs::remove_dir_all(download_path.join(".DepotDownloader"));
-        let _ = std::fs::create_dir("./Completed");
+        let _ = remove_dir_all(download_path.join(".DepotDownloader"));
+        let _ = create_dir("./Completed");
         command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -239,11 +239,11 @@ impl WinRARSettings {
         let _ = create_dir(current_dir().unwrap().join("Completed").join(split_folder));
         command
             .arg("-ep1")
-            .arg(format!("{}", current_dir().unwrap().join("Completed").join(split_folder).join(download_path.file_name().unwrap()).to_str().unwrap()))
+            .arg(current_dir().unwrap().join("Completed").join(split_folder).join(download_path.file_name().unwrap()).to_str().unwrap().to_string())
             .arg(download_path);
         let mut child = command.spawn()?;
         
-        let result = Arc::new(Mutex::new(Err(std::io::Error::new(std::io::ErrorKind::Other, "Unknown error"))));
+        let result = Arc::new(Mutex::new(Err(std::io::Error::other("Unknown error"))));
         
         thread::scope(|s| {
             if let Some(mut stderr) = child.stderr.take() {

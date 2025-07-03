@@ -1,14 +1,13 @@
 use crate::modules::compression::{Archiver, CompressorSettings};
 use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
-use crate::modules::depot_downloader::{DepotDownloaderSettings, EncryptionKey};
+use crate::modules::depot_downloader::DepotDownloaderSettings;
+use aes_gcm::aead::{Aead, Nonce, OsRng};
+use aes_gcm::{AeadCore, Aes256Gcm, Key, KeyInit};
 use eframe::egui::{ComboBox, Context, Slider, TextEdit, Ui};
 use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
-use std::io::Read;
 use std::path::Path;
-use aes_gcm::{AeadCore, Aes256Gcm, Key, KeyInit};
-use aes_gcm::aead::{Aead, Nonce, OsRng};
 #[derive(Default, Deserialize, Serialize)]
 pub struct SettingsUI {
     pub depot_downloader_settings: DepotDownloaderSettings,
@@ -42,9 +41,9 @@ impl SettingsUI {
             }
 
             let key = Key::<Aes256Gcm>::from_slice(&key);
-            let cipher = Aes256Gcm::new(&key);
+            let cipher = Aes256Gcm::new(key);
 
-            let decryption = cipher.decrypt(&nonce, self.depot_downloader_settings.encrypted_username.as_ref());
+            let decryption = cipher.decrypt(nonce, self.depot_downloader_settings.encrypted_username.as_ref());
             match decryption {
                 Ok(decrypted_username) => {
                     self.depot_downloader_settings.username = String::from_utf8(decrypted_username).unwrap();
@@ -432,8 +431,8 @@ fn calculate_7zip_memory_usage(settings: &SevenZipSettings) -> (u128, u128) {
 
     // Return the size for compression and decompression in MB
     (
-        (size + bytes_ratio - 1) / bytes_ratio,
-        (dictionary_size + (2 * bytes_ratio) + bytes_ratio - 1) / bytes_ratio,
+        size.div_ceil(bytes_ratio),
+        (dictionary_size + (2 * bytes_ratio)).div_ceil(bytes_ratio),
     )
 }
 

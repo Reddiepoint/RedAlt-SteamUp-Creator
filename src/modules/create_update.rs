@@ -1,18 +1,18 @@
+use crate::modules::app::TabBar;
+use crate::modules::changes::Changes;
+use crate::modules::compression::{Archiver, CompressorSettings};
+use crate::modules::depot_downloader::{download_changes, DepotDownloaderSettings};
+use crossbeam_channel::{Receiver, Sender};
+use eframe::egui::text::LayoutJob;
+use eframe::egui::{Button, Color32, ComboBox, Context, FontFamily, FontId, ScrollArea, TextEdit, TextFormat, Ui, Window};
+use egui_file::FileDialog;
 use std::env::current_dir;
 use std::ffi::OsStr;
 use std::fmt::{Display, Formatter};
 use std::fs::create_dir;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::{env, thread};
-use crossbeam_channel::{Receiver, Sender};
-use eframe::egui::{Button, Color32, ComboBox, Context, FontFamily, FontId, Label, ScrollArea, TextEdit, TextFormat, Ui, Window};
-use eframe::egui::text::LayoutJob;
-use egui_file::FileDialog;
-use crate::modules::app::TabBar;
-use crate::modules::changes::Changes;
-use crate::modules::compression::{Archiver, CompressorSettings};
-use crate::modules::depot_downloader::{DepotDownloaderSettings, download_changes, download_manifest};
+use std::thread;
 
 
 pub struct CreateUpdateChannels {
@@ -342,7 +342,7 @@ impl CreateUpdateUI {
                     }
                 }
                 Err(error) => {
-                    let _ = self.channels.output_sender.send(format!("Depot Downloader exited unsuccessfully: {}.\n", error));
+                    let _ = self.channels.output_sender.send(format!("Depot Downloader exited unsuccessfully: {error}.\n"));
 
                     self.child_process_running = false;
                 }
@@ -357,7 +357,7 @@ impl CreateUpdateUI {
                     }
                 }
                 Err(error) => {
-                    let _ = self.channels.output_sender.send(format!("\nFailed to compress files: {}.\n", error));
+                    let _ = self.channels.output_sender.send(format!("\nFailed to compress files: {error}.\n"));
                 }
             }
             self.child_process_running = false;
@@ -420,7 +420,7 @@ impl CreateUpdateUI {
                             }
                         }
                     }
-                    println!("{:?}", command);
+                    println!("{command:?}");
                     let mut child = command.spawn().unwrap();
                     let _ = child.wait();
                 });
