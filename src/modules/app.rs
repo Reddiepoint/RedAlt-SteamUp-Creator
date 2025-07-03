@@ -1,8 +1,8 @@
 use crate::modules::create_update::CreateUpdateUI;
-use crate::modules::settings::SettingsUI;
-use eframe::egui::{CentralPanel, Context, menu, TopBottomPanel, Ui};
-use eframe::{App, CreationContext, Frame};
 use crate::modules::help::HelpUI;
+use crate::modules::settings::SettingsUI;
+use eframe::egui::{menu, CentralPanel, Context, TopBottomPanel, Ui};
+use eframe::{App, CreationContext, Frame};
 
 #[derive(Default, PartialEq)]
 pub enum TabBar {
@@ -24,7 +24,6 @@ impl App for RedAltSteamUpCreator {
         self.settings_ui.read_settings();
         self.display_top_bar(ctx);
         self.display_central_panel(ctx);
-
     }
 }
 
@@ -32,7 +31,7 @@ impl RedAltSteamUpCreator {
     pub fn new(_cc: &CreationContext) -> Self {
         Self::default()
     }
-    
+
     fn display_top_bar(&mut self, ctx: &Context) {
         TopBottomPanel::top("Tabs").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -77,7 +76,6 @@ impl RedAltSteamUpCreator {
                     self.help_ui.show_update = true;
                     ui.close_menu();
                 }
-
 
                 ui.label(format!("Version: {}", env!("CARGO_PKG_VERSION")));
             })

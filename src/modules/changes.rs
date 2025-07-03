@@ -10,7 +10,7 @@ pub struct Changes {
     pub added: Vec<String>,
     pub removed: Vec<String>,
     pub modified: Vec<String>,
-    pub manifest: String
+    pub manifest: String,
 }
 
 impl Changes {
