@@ -27,7 +27,6 @@ pub struct DepotDownloaderSettings {
     pub username: String,
     #[serde(skip)]
     pub password: String,
-    pub max_servers: u8,
     pub max_downloads: u8,
     // Used by app
     pub remember_credentials: bool,
@@ -49,7 +48,6 @@ impl Default for DepotDownloaderSettings {
             encrypted_username: Vec::new(),
             username: String::new(),
             password: String::new(),
-            max_servers: 20,
             max_downloads: 8,
             remember_credentials: true,
             download_manifest: true,
@@ -105,7 +103,6 @@ pub fn download_changes(
     };
 
     command
-        .args(["-max-servers", &settings.max_servers.to_string()])
         .args(["-max-downloads", &settings.max_downloads.to_string()]);
 
     let mut child = command.spawn()?;
