@@ -1,10 +1,10 @@
+use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
+use egui_file::FileDialog;
+use serde::{Deserialize, Serialize};
 use std::env::current_dir;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
-use egui_file::FileDialog;
-use serde::{Deserialize, Serialize};
 use which::which;
-use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
 
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub enum Archiver {
@@ -15,10 +15,14 @@ pub enum Archiver {
 
 impl Display for Archiver {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Archiver::SevenZip => "7zip",
-            Archiver::WinRAR => "WinRAR"
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Archiver::SevenZip => "7zip",
+                Archiver::WinRAR => "WinRAR",
+            }
+        )
     }
 }
 
@@ -63,7 +67,12 @@ impl Default for CompressorSettings {
             multiup_direct_path: {
                 let mut executable = None;
                 for file in current_dir().unwrap().read_dir().unwrap().flatten() {
-                    if file.file_name().to_str().unwrap().contains("Multiup-Direct") {
+                    if file
+                        .file_name()
+                        .to_str()
+                        .unwrap()
+                        .contains("Multiup-Direct")
+                    {
                         executable = Some(file.path());
                         break;
                     }

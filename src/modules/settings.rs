@@ -30,12 +30,18 @@ impl SettingsUI {
 
             // Decrypt username
             if let Ok(mut file) = std::fs::File::open("key.json") {
-               self.depot_downloader_settings.encryption_key = serde_json::from_reader(&mut file).unwrap();
-
+                self.depot_downloader_settings.encryption_key =
+                    serde_json::from_reader(&mut file).unwrap();
             };
 
-            let key = xor_cipher(&self.depot_downloader_settings.encryption_key.encrypted_encryption_key);
-            let nonce = Nonce::<Aes256Gcm>::from_slice(&self.depot_downloader_settings.username_nonce);
+            let key = xor_cipher(
+                &self
+                    .depot_downloader_settings
+                    .encryption_key
+                    .encrypted_encryption_key,
+            );
+            let nonce =
+                Nonce::<Aes256Gcm>::from_slice(&self.depot_downloader_settings.username_nonce);
             if key.is_empty() || nonce.is_empty() {
                 return;
             }
@@ -43,10 +49,14 @@ impl SettingsUI {
             let key = Key::<Aes256Gcm>::from_slice(&key);
             let cipher = Aes256Gcm::new(key);
 
-            let decryption = cipher.decrypt(nonce, self.depot_downloader_settings.encrypted_username.as_ref());
+            let decryption = cipher.decrypt(
+                nonce,
+                self.depot_downloader_settings.encrypted_username.as_ref(),
+            );
             match decryption {
                 Ok(decrypted_username) => {
-                    self.depot_downloader_settings.username = String::from_utf8(decrypted_username).unwrap();
+                    self.depot_downloader_settings.username =
+                        String::from_utf8(decrypted_username).unwrap();
                 }
                 Err(_) => {}
             }
@@ -61,18 +71,30 @@ impl SettingsUI {
             let cipher = Aes256Gcm::new(&key);
             let decrypted_username = self.depot_downloader_settings.username.clone();
             let encrypted_username = cipher.encrypt(&nonce, decrypted_username.as_bytes());
-            self.depot_downloader_settings.encryption_key.encrypted_encryption_key = xor_cipher(&key.as_slice().to_owned().try_into().unwrap());
-            self.depot_downloader_settings.username_nonce = nonce.as_slice().to_owned().try_into().unwrap();
+            self.depot_downloader_settings
+                .encryption_key
+                .encrypted_encryption_key =
+                xor_cipher(&key.as_slice().to_owned().try_into().unwrap());
+            self.depot_downloader_settings.username_nonce =
+                nonce.as_slice().to_owned().try_into().unwrap();
             self.depot_downloader_settings.encrypted_username = encrypted_username.unwrap();
 
             // self.depot_downloader_settings.username = String::new();
         } else {
-            self.depot_downloader_settings.encryption_key.encrypted_encryption_key = [0; 32];
+            self.depot_downloader_settings
+                .encryption_key
+                .encrypted_encryption_key = [0; 32];
             self.depot_downloader_settings.username_nonce = [0; 12];
             self.depot_downloader_settings.encrypted_username = Vec::new();
         }
-        let _ = std::fs::write("key.json", serde_json::to_string_pretty(&self.depot_downloader_settings.encryption_key).unwrap());
-        let _ = std::fs::write("settings.json", serde_json::to_string_pretty(&self).unwrap());
+        let _ = std::fs::write(
+            "key.json",
+            serde_json::to_string_pretty(&self.depot_downloader_settings.encryption_key).unwrap(),
+        );
+        let _ = std::fs::write(
+            "settings.json",
+            serde_json::to_string_pretty(&self).unwrap(),
+        );
         // self.depot_downloader_settings.username = username;
     }
 
@@ -105,17 +127,23 @@ impl SettingsUI {
         });
         ui.horizontal(|ui| {
             ui.label("Password:");
-            ui.add(TextEdit::singleline(&mut self.depot_downloader_settings.password)
-                .password(true));
+            ui.add(
+                TextEdit::singleline(&mut self.depot_downloader_settings.password).password(true),
+            );
         });
 
-        ui.checkbox(&mut self.depot_downloader_settings.remember_credentials,
-                    "Remember credentials (Requires login with Depot Downloader at least once. \
-                    Subsequent logins require the username only.)");
+        ui.checkbox(
+            &mut self.depot_downloader_settings.remember_credentials,
+            "Remember credentials (Requires login with Depot Downloader at least once. \
+                    Subsequent logins require the username only.)",
+        );
 
         ui.horizontal(|ui| {
             ui.label("Max number of concurrent chunks downloaded:");
-            ui.add(Slider::new(&mut self.depot_downloader_settings.max_downloads, 1..=32));
+            ui.add(Slider::new(
+                &mut self.depot_downloader_settings.max_downloads,
+                1..=32,
+            ));
         });
     }
 
@@ -123,10 +151,19 @@ impl SettingsUI {
         ui.heading("Compression Settings");
         ui.horizontal(|ui| {
             ui.label("Archiver:");
-            ComboBox::from_id_salt("Archiver").selected_text(format!("{}", self.compression_settings.archiver))
+            ComboBox::from_id_salt("Archiver")
+                .selected_text(format!("{}", self.compression_settings.archiver))
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.compression_settings.archiver, Archiver::SevenZip, "7-zip");
-                    ui.selectable_value(&mut self.compression_settings.archiver, Archiver::WinRAR, "WinRAR");
+                    ui.selectable_value(
+                        &mut self.compression_settings.archiver,
+                        Archiver::SevenZip,
+                        "7-zip",
+                    );
+                    ui.selectable_value(
+                        &mut self.compression_settings.archiver,
+                        Archiver::WinRAR,
+                        "WinRAR",
+                    );
                 });
         });
 
@@ -158,10 +195,12 @@ impl SettingsUI {
                         if let Some(file) = dialog.path() {
                             match self.compression_settings.archiver {
                                 Archiver::SevenZip => {
-                                    self.compression_settings.seven_zip_settings.path = Some(file.to_path_buf()).clone();
+                                    self.compression_settings.seven_zip_settings.path =
+                                        Some(file.to_path_buf()).clone();
                                 }
                                 Archiver::WinRAR => {
-                                    self.compression_settings.win_rar_settings.path = Some(file.to_path_buf()).clone();
+                                    self.compression_settings.win_rar_settings.path =
+                                        Some(file.to_path_buf()).clone();
                                 }
                             }
                         }
@@ -187,72 +226,219 @@ impl SettingsUI {
 
         ui.horizontal(|ui| {
             ui.label("Archive format:");
-            ComboBox::from_id_salt("Format").selected_text(self.compression_settings.seven_zip_settings.archive_format.to_string())
+            ComboBox::from_id_salt("Format")
+                .selected_text(
+                    self.compression_settings
+                        .seven_zip_settings
+                        .archive_format
+                        .to_string(),
+                )
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.archive_format, "7z".to_string(), "7z");
+                    ui.selectable_value(
+                        &mut self.compression_settings.seven_zip_settings.archive_format,
+                        "7z".to_string(),
+                        "7z",
+                    );
                 });
         });
 
         ui.horizontal(|ui| {
             ui.label("Compression level:");
-            ComboBox::from_id_salt("Compression Level").selected_text(format!("{}", self.compression_settings.seven_zip_settings.compression_level))
+            ComboBox::from_id_salt("Compression Level")
+                .selected_text(format!(
+                    "{}",
+                    self.compression_settings
+                        .seven_zip_settings
+                        .compression_level
+                ))
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 0, "0 - Store");
-                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 1, "1 - Fastest");
-                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 3, "3 - Fast");
-                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 5, "5 - Normal");
-                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 7, "7 - Maximum");
-                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 9, "9 - Ultra");
+                    ui.selectable_value(
+                        &mut self
+                            .compression_settings
+                            .seven_zip_settings
+                            .compression_level,
+                        0,
+                        "0 - Store",
+                    );
+                    ui.selectable_value(
+                        &mut self
+                            .compression_settings
+                            .seven_zip_settings
+                            .compression_level,
+                        1,
+                        "1 - Fastest",
+                    );
+                    ui.selectable_value(
+                        &mut self
+                            .compression_settings
+                            .seven_zip_settings
+                            .compression_level,
+                        3,
+                        "3 - Fast",
+                    );
+                    ui.selectable_value(
+                        &mut self
+                            .compression_settings
+                            .seven_zip_settings
+                            .compression_level,
+                        5,
+                        "5 - Normal",
+                    );
+                    ui.selectable_value(
+                        &mut self
+                            .compression_settings
+                            .seven_zip_settings
+                            .compression_level,
+                        7,
+                        "7 - Maximum",
+                    );
+                    ui.selectable_value(
+                        &mut self
+                            .compression_settings
+                            .seven_zip_settings
+                            .compression_level,
+                        9,
+                        "9 - Ultra",
+                    );
                 });
         });
 
         ui.horizontal(|ui| {
             ui.label("Compression method:");
-            ComboBox::from_id_salt("Compression Method").selected_text(self.compression_settings.seven_zip_settings.compression_method.to_string())
+            ComboBox::from_id_salt("Compression Method")
+                .selected_text(
+                    self.compression_settings
+                        .seven_zip_settings
+                        .compression_method
+                        .to_string(),
+                )
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_method, "LZMA2".to_string(), "7ZMA2");
+                    ui.selectable_value(
+                        &mut self
+                            .compression_settings
+                            .seven_zip_settings
+                            .compression_method,
+                        "LZMA2".to_string(),
+                        "7ZMA2",
+                    );
                 });
         });
 
         ui.horizontal(|ui| {
             ui.label("Dictionary size (MB):");
-            ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.dictionary_size, 1..=2048));
+            ui.add(Slider::new(
+                &mut self.compression_settings.seven_zip_settings.dictionary_size,
+                1..=2048,
+            ));
         });
 
         ui.horizontal(|ui| {
             ui.label("Word size:");
-            ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.word_size, 5..=273));
+            ui.add(Slider::new(
+                &mut self.compression_settings.seven_zip_settings.word_size,
+                5..=273,
+            ));
         });
 
         ui.horizontal(|ui| {
             ui.label("Solid block size:");
-            match self.compression_settings.seven_zip_settings.solid_block_size_unit.as_str() {
-                "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=100)),
-                _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=10000))
+            match self
+                .compression_settings
+                .seven_zip_settings
+                .solid_block_size_unit
+                .as_str()
+            {
+                "g" => ui.add(Slider::new(
+                    &mut self
+                        .compression_settings
+                        .seven_zip_settings
+                        .solid_block_size,
+                    1..=100,
+                )),
+                _ => ui.add(Slider::new(
+                    &mut self
+                        .compression_settings
+                        .seven_zip_settings
+                        .solid_block_size,
+                    1..=10000,
+                )),
             };
-            ComboBox::from_id_salt("Solid Block Size Unit").selected_text(format!("{}B", self.compression_settings.seven_zip_settings.solid_block_size_unit.to_uppercase()))
+            ComboBox::from_id_salt("Solid Block Size Unit")
+                .selected_text(format!(
+                    "{}B",
+                    self.compression_settings
+                        .seven_zip_settings
+                        .solid_block_size_unit
+                        .to_uppercase()
+                ))
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.solid_block_size_unit, "m".to_string(), "MB");
-                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.solid_block_size_unit, "g".to_string(), "GB");
+                    ui.selectable_value(
+                        &mut self
+                            .compression_settings
+                            .seven_zip_settings
+                            .solid_block_size_unit,
+                        "m".to_string(),
+                        "MB",
+                    );
+                    ui.selectable_value(
+                        &mut self
+                            .compression_settings
+                            .seven_zip_settings
+                            .solid_block_size_unit,
+                        "g".to_string(),
+                        "GB",
+                    );
                 });
         });
 
         ui.horizontal(|ui| {
             ui.label("CPU Threads:");
             let max_cpu_threads = std::thread::available_parallelism().unwrap().get() as u8;
-            ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.number_of_cpu_threads, 1..=max_cpu_threads));
+            ui.add(Slider::new(
+                &mut self
+                    .compression_settings
+                    .seven_zip_settings
+                    .number_of_cpu_threads,
+                1..=max_cpu_threads,
+            ));
         });
 
         ui.horizontal(|ui| {
             ui.label("Split size:");
-            match self.compression_settings.seven_zip_settings.split_size_unit.as_str() {
-                "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=100)),
-                _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=10000))
+            match self
+                .compression_settings
+                .seven_zip_settings
+                .split_size_unit
+                .as_str()
+            {
+                "g" => ui.add(Slider::new(
+                    &mut self.compression_settings.seven_zip_settings.split_size,
+                    0..=100,
+                )),
+                _ => ui.add(Slider::new(
+                    &mut self.compression_settings.seven_zip_settings.split_size,
+                    0..=10000,
+                )),
             };
-            ComboBox::from_id_salt("Split Size Unit").selected_text(format!("{}B", self.compression_settings.seven_zip_settings.split_size_unit.to_uppercase()))
+            ComboBox::from_id_salt("Split Size Unit")
+                .selected_text(format!(
+                    "{}B",
+                    self.compression_settings
+                        .seven_zip_settings
+                        .split_size_unit
+                        .to_uppercase()
+                ))
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.split_size_unit, "m".to_string(), "MB");
-                    ui.selectable_value(&mut self.compression_settings.seven_zip_settings.split_size_unit, "g".to_string(), "GB");
+                    ui.selectable_value(
+                        &mut self.compression_settings.seven_zip_settings.split_size_unit,
+                        "m".to_string(),
+                        "MB",
+                    );
+                    ui.selectable_value(
+                        &mut self.compression_settings.seven_zip_settings.split_size_unit,
+                        "g".to_string(),
+                        "GB",
+                    );
                 });
         });
 
@@ -273,50 +459,130 @@ impl SettingsUI {
 
         ui.horizontal(|ui| {
             ui.label("Archive format:");
-            ComboBox::from_id_salt("Format").selected_text(self.compression_settings.win_rar_settings.archive_format.to_string())
+            ComboBox::from_id_salt("Format")
+                .selected_text(
+                    self.compression_settings
+                        .win_rar_settings
+                        .archive_format
+                        .to_string(),
+                )
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.archive_format, "rar".to_string(), "RAR");
+                    ui.selectable_value(
+                        &mut self.compression_settings.win_rar_settings.archive_format,
+                        "rar".to_string(),
+                        "RAR",
+                    );
                 });
         });
 
         ui.horizontal(|ui| {
             ui.label("Compression method:");
-            ComboBox::from_id_salt("Compression Method").selected_text(format!("{}", self.compression_settings.win_rar_settings.compression_level))
+            ComboBox::from_id_salt("Compression Method")
+                .selected_text(format!(
+                    "{}",
+                    self.compression_settings.win_rar_settings.compression_level
+                ))
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 0, "0 - Store");
-                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 1, "1 - Fastest");
-                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 2, "2 - Fast");
-                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 3, "3 - Normal");
-                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 4, "4 - Good");
-                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 5, "5 - Best");
+                    ui.selectable_value(
+                        &mut self.compression_settings.win_rar_settings.compression_level,
+                        0,
+                        "0 - Store",
+                    );
+                    ui.selectable_value(
+                        &mut self.compression_settings.win_rar_settings.compression_level,
+                        1,
+                        "1 - Fastest",
+                    );
+                    ui.selectable_value(
+                        &mut self.compression_settings.win_rar_settings.compression_level,
+                        2,
+                        "2 - Fast",
+                    );
+                    ui.selectable_value(
+                        &mut self.compression_settings.win_rar_settings.compression_level,
+                        3,
+                        "3 - Normal",
+                    );
+                    ui.selectable_value(
+                        &mut self.compression_settings.win_rar_settings.compression_level,
+                        4,
+                        "4 - Good",
+                    );
+                    ui.selectable_value(
+                        &mut self.compression_settings.win_rar_settings.compression_level,
+                        5,
+                        "5 - Best",
+                    );
                 });
         });
 
         ui.horizontal(|ui| {
             ui.label("Dictionary size (MB):");
-            ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.dictionary_size, 1..=1024));
+            ui.add(Slider::new(
+                &mut self.compression_settings.win_rar_settings.dictionary_size,
+                1..=1024,
+            ));
             // Round to nearest power of 2
-            self.compression_settings.win_rar_settings.dictionary_size = self.compression_settings.win_rar_settings.dictionary_size.next_power_of_two();
+            self.compression_settings.win_rar_settings.dictionary_size = self
+                .compression_settings
+                .win_rar_settings
+                .dictionary_size
+                .next_power_of_two();
         });
 
-        ui.checkbox(&mut self.compression_settings.win_rar_settings.solid, "Solid");
+        ui.checkbox(
+            &mut self.compression_settings.win_rar_settings.solid,
+            "Solid",
+        );
 
         ui.horizontal(|ui| {
             ui.label("CPU Threads:");
             let max_cpu_threads = std::thread::available_parallelism().unwrap().get() as u8;
-            ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.number_of_cpu_threads, 1..=max_cpu_threads));
+            ui.add(Slider::new(
+                &mut self
+                    .compression_settings
+                    .win_rar_settings
+                    .number_of_cpu_threads,
+                1..=max_cpu_threads,
+            ));
         });
 
         ui.horizontal(|ui| {
             ui.label("Split size:");
-            match self.compression_settings.win_rar_settings.split_size_unit.as_str() {
-                "g" => ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.split_size, 0..=100)),
-                _ => ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.split_size, 0..=10000))
+            match self
+                .compression_settings
+                .win_rar_settings
+                .split_size_unit
+                .as_str()
+            {
+                "g" => ui.add(Slider::new(
+                    &mut self.compression_settings.win_rar_settings.split_size,
+                    0..=100,
+                )),
+                _ => ui.add(Slider::new(
+                    &mut self.compression_settings.win_rar_settings.split_size,
+                    0..=10000,
+                )),
             };
-            ComboBox::from_id_salt("Split Size Unit").selected_text(format!("{}B", self.compression_settings.win_rar_settings.split_size_unit.to_uppercase()))
+            ComboBox::from_id_salt("Split Size Unit")
+                .selected_text(format!(
+                    "{}B",
+                    self.compression_settings
+                        .win_rar_settings
+                        .split_size_unit
+                        .to_uppercase()
+                ))
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.split_size_unit, "m".to_string(), "MB");
-                    ui.selectable_value(&mut self.compression_settings.win_rar_settings.split_size_unit, "g".to_string(), "GB");
+                    ui.selectable_value(
+                        &mut self.compression_settings.win_rar_settings.split_size_unit,
+                        "m".to_string(),
+                        "MB",
+                    );
+                    ui.selectable_value(
+                        &mut self.compression_settings.win_rar_settings.split_size_unit,
+                        "g".to_string(),
+                        "GB",
+                    );
                 });
         });
 
@@ -342,13 +608,18 @@ impl SettingsUI {
                     let ext = Some(OsStr::new("exe"));
                     move |path: &Path| -> bool { path.extension() == ext }
                 });
-                let mut dialog = FileDialog::open_file(self.compression_settings.multiup_direct_path.clone()).show_files_filter(filter);
+                let mut dialog =
+                    FileDialog::open_file(self.compression_settings.multiup_direct_path.clone())
+                        .show_files_filter(filter);
                 dialog.open();
                 self.compression_settings.multiup_direct_file_dialog = Some(dialog);
             }
         });
 
-        ui.hyperlink_to("Download MultiUp Direct", "https://cs.rin.ru/forum/viewtopic.php?p=2822500");
+        ui.hyperlink_to(
+            "Download MultiUp Direct",
+            "https://cs.rin.ru/forum/viewtopic.php?p=2822500",
+        );
 
         if let Some(dialog) = &mut self.compression_settings.multiup_direct_file_dialog {
             if dialog.show(ui.ctx()).selected() {
