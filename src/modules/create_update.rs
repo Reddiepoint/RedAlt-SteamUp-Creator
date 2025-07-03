@@ -167,13 +167,6 @@ impl CreateUpdateUI {
                 self.changes = serde_json::from_str::<Changes>(&file)
                     .unwrap_or_else(|error| Changes::new_error(error.to_string()));
                 // Display changes
-                // let information = match !self.changes.depot.is_empty() {
-                //     true => format!("Creating update for {} ({}) (Depot {} - {}) from Build {} to Build {}",
-                //                     self.changes.name, self.changes.app, self.changes.depot, self.changes.manifest,
-                //                     self.changes.initial_build, self.changes.final_build),
-                //     false => self.changes.app.to_string()
-                // };
-                // ui.label(information);
                 let information_job = if !self.changes.depot.is_empty() {
                     let mut job = LayoutJob::default();
                     let normal = TextFormat {
@@ -187,38 +180,16 @@ impl CreateUpdateUI {
                     };
 
                     job.append("Creating update for ", 0.0, normal.clone());
-
-                    // self.changes.name (bold)
                     job.append(&self.changes.name, 0.0, bold.clone());
-
-                    // " ("
                     job.append(" (", 0.0, normal.clone());
-
-                    // self.changes.app
                     job.append(&self.changes.app.to_string(), 0.0, normal.clone());
-
-                    // ") (Depot "
                     job.append(") (Depot ", 0.0, normal.clone());
-
-                    // self.changes.depot
                     job.append(&self.changes.depot, 0.0, bold.clone());
-
-                    // " - "
                     job.append(" - ", 0.0, normal.clone());
-
-                    // self.changes.manifest
                     job.append(&self.changes.manifest, 0.0, normal.clone());
-
-                    // ") from Build "
                     job.append(") from Build ", 0.0, normal.clone());
-
-                    // self.changes.initial_build (bold)
                     job.append(&self.changes.initial_build, 0.0, bold.clone());
-
-                    // " to Build "
                     job.append(" to Build ", 0.0, normal.clone());
-
-                    // self.changes.final_build (bold)
                     job.append(&self.changes.final_build, 0.0, bold.clone());
 
                     job
