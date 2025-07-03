@@ -124,7 +124,7 @@ impl SettingsUI {
         ui.heading("Compression Settings");
         ui.horizontal(|ui| {
             ui.label("Archiver:");
-            ComboBox::from_id_source("Archiver").selected_text(format!("{}", self.compression_settings.archiver))
+            ComboBox::from_id_salt("Archiver").selected_text(format!("{}", self.compression_settings.archiver))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.archiver, Archiver::SevenZip, "7-zip");
                     ui.selectable_value(&mut self.compression_settings.archiver, Archiver::WinRAR, "WinRAR");
@@ -188,7 +188,7 @@ impl SettingsUI {
 
         ui.horizontal(|ui| {
             ui.label("Archive format:");
-            ComboBox::from_id_source("Format").selected_text(self.compression_settings.seven_zip_settings.archive_format.to_string())
+            ComboBox::from_id_salt("Format").selected_text(self.compression_settings.seven_zip_settings.archive_format.to_string())
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.archive_format, "7z".to_string(), "7z");
                 });
@@ -196,7 +196,7 @@ impl SettingsUI {
 
         ui.horizontal(|ui| {
             ui.label("Compression level:");
-            ComboBox::from_id_source("Compression Level").selected_text(format!("{}", self.compression_settings.seven_zip_settings.compression_level))
+            ComboBox::from_id_salt("Compression Level").selected_text(format!("{}", self.compression_settings.seven_zip_settings.compression_level))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 0, "0 - Store");
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_level, 1, "1 - Fastest");
@@ -209,7 +209,7 @@ impl SettingsUI {
 
         ui.horizontal(|ui| {
             ui.label("Compression method:");
-            ComboBox::from_id_source("Compression Method").selected_text(self.compression_settings.seven_zip_settings.compression_method.to_string())
+            ComboBox::from_id_salt("Compression Method").selected_text(self.compression_settings.seven_zip_settings.compression_method.to_string())
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.compression_method, "LZMA2".to_string(), "7ZMA2");
                 });
@@ -231,7 +231,7 @@ impl SettingsUI {
                 "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=100)),
                 _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.solid_block_size, 1..=10000))
             };
-            ComboBox::from_id_source("Solid Block Size Unit").selected_text(format!("{}B", self.compression_settings.seven_zip_settings.solid_block_size_unit.to_uppercase()))
+            ComboBox::from_id_salt("Solid Block Size Unit").selected_text(format!("{}B", self.compression_settings.seven_zip_settings.solid_block_size_unit.to_uppercase()))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.solid_block_size_unit, "m".to_string(), "MB");
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.solid_block_size_unit, "g".to_string(), "GB");
@@ -250,7 +250,7 @@ impl SettingsUI {
                 "g" => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=100)),
                 _ => ui.add(Slider::new(&mut self.compression_settings.seven_zip_settings.split_size, 0..=10000))
             };
-            ComboBox::from_id_source("Split Size Unit").selected_text(format!("{}B", self.compression_settings.seven_zip_settings.split_size_unit.to_uppercase()))
+            ComboBox::from_id_salt("Split Size Unit").selected_text(format!("{}B", self.compression_settings.seven_zip_settings.split_size_unit.to_uppercase()))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.split_size_unit, "m".to_string(), "MB");
                     ui.selectable_value(&mut self.compression_settings.seven_zip_settings.split_size_unit, "g".to_string(), "GB");
@@ -274,7 +274,7 @@ impl SettingsUI {
 
         ui.horizontal(|ui| {
             ui.label("Archive format:");
-            ComboBox::from_id_source("Format").selected_text(self.compression_settings.win_rar_settings.archive_format.to_string())
+            ComboBox::from_id_salt("Format").selected_text(self.compression_settings.win_rar_settings.archive_format.to_string())
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.win_rar_settings.archive_format, "rar".to_string(), "RAR");
                 });
@@ -282,7 +282,7 @@ impl SettingsUI {
 
         ui.horizontal(|ui| {
             ui.label("Compression method:");
-            ComboBox::from_id_source("Compression Method").selected_text(format!("{}", self.compression_settings.win_rar_settings.compression_level))
+            ComboBox::from_id_salt("Compression Method").selected_text(format!("{}", self.compression_settings.win_rar_settings.compression_level))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 0, "0 - Store");
                     ui.selectable_value(&mut self.compression_settings.win_rar_settings.compression_level, 1, "1 - Fastest");
@@ -314,7 +314,7 @@ impl SettingsUI {
                 "g" => ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.split_size, 0..=100)),
                 _ => ui.add(Slider::new(&mut self.compression_settings.win_rar_settings.split_size, 0..=10000))
             };
-            ComboBox::from_id_source("Split Size Unit").selected_text(format!("{}B", self.compression_settings.win_rar_settings.split_size_unit.to_uppercase()))
+            ComboBox::from_id_salt("Split Size Unit").selected_text(format!("{}B", self.compression_settings.win_rar_settings.split_size_unit.to_uppercase()))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.compression_settings.win_rar_settings.split_size_unit, "m".to_string(), "MB");
                     ui.selectable_value(&mut self.compression_settings.win_rar_settings.split_size_unit, "g".to_string(), "GB");
