@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 use std::fs::create_dir;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::thread;
+use std::{env, thread};
 use crossbeam_channel::{Receiver, Sender};
 use eframe::egui::{Button, ComboBox, Context, ScrollArea, TextEdit, Ui, Window};
 use egui_file::FileDialog;
@@ -123,6 +123,7 @@ impl CreateUpdateUI {
                     move |path: &Path| -> bool { path.extension() == ext }
                 });
                 let mut dialog = FileDialog::open_file(self.changes_json_file.clone()).show_files_filter(filter);
+                dialog.set_path(current_dir().unwrap_or_else(|_| PathBuf::from(".")));
                 dialog.open();
                 self.open_file_dialog = Some(dialog);
             }
