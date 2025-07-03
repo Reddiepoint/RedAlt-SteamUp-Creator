@@ -83,7 +83,7 @@ pub fn download_changes(
                       changes.name, changes.depot, changes.initial_build, changes.final_build));
     let download_path_clone = download_path.clone();
     // Run Depot Downloader
-    let mut command = Command::new("./DepotDownloader.exe");
+    let mut command = Command::new("./DepotDownloader");
     command
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

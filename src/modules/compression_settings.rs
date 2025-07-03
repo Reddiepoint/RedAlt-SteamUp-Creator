@@ -219,7 +219,7 @@ impl WinRARSettings {
             .arg(format!("-m{}", self.compression_level))
             .arg(format!("-md{}m", self.dictionary_size))
             .arg(format!("-mt{}", self.number_of_cpu_threads));
-        if archiver_path.contains("WinRAR.exe") {
+        if archiver_path.contains("WinRAR") {
             command.arg(format!("-af{}", self.archive_format));
         }
         if self.solid {

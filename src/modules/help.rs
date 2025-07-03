@@ -293,7 +293,7 @@ impl HelpUI {
             .build()?
             .get_latest_release()?;
         
-        let mut command = Command::new("./RedAlt-SteamUp-Installer.exe");
+        let mut command = Command::new("./RedAlt-SteamUp-Installer");
         command
             .stdout(Stdio::piped())
             .arg("--version");
@@ -308,7 +308,6 @@ impl HelpUI {
         let installer_update = self_update::backends::github::Update::configure()
             .repo_owner("Reddiepoint")
             .repo_name("RedAlt-SteamUp-Installer")
-            .target("")
             .bin_name("RedAlt-SteamUp-Installer")
             .current_version(&installer_current_version)
             .build()?
