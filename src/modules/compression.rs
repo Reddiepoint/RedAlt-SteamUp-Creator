@@ -46,11 +46,11 @@ impl Default for CompressorSettings {
                 let paths = CompressorSettings::get_detected_paths();
                 let mut archiver = Archiver::SevenZip;
                 for path in paths.into_iter().flatten() {
-                    if path.contains("7z.exe") {
+                    if path.contains("7z") {
                         archiver = Archiver::SevenZip;
 
                         break; // Use 7zip if possible instead of WinRAR
-                    } else if path.contains("WinRAR.exe") {
+                    } else if path.contains("WinRAR") {
                         archiver = Archiver::WinRAR;
                     }
                 }
@@ -63,7 +63,7 @@ impl Default for CompressorSettings {
             multiup_direct_path: {
                 let mut executable = None;
                 for file in current_dir().unwrap().read_dir().unwrap().flatten() {
-                    if file.file_name().to_str().unwrap().contains("Direct.exe") {
+                    if file.file_name().to_str().unwrap().contains("Multiup-Direct") {
                         executable = Some(file.path());
                         break;
                     }
