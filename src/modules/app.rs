@@ -1,7 +1,7 @@
 use crate::modules::create_update::CreateUpdateUI;
 use crate::modules::settings::SettingsUI;
 use eframe::egui::{CentralPanel, Context, menu, TopBottomPanel, Ui};
-use eframe::{App, Frame};
+use eframe::{App, CreationContext, Frame};
 use crate::modules::help::HelpUI;
 
 #[derive(Default, PartialEq)]
@@ -29,6 +29,10 @@ impl App for RedAltSteamUpCreator {
 }
 
 impl RedAltSteamUpCreator {
+    pub fn new(cc: &CreationContext) -> Self {
+        Self::default()
+    }
+    
     fn display_top_bar(&mut self, ctx: &Context) {
         TopBottomPanel::top("Tabs").show(ctx, |ui| {
             ui.horizontal(|ui| {
