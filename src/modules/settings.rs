@@ -267,6 +267,7 @@ impl SettingsUI {
         ui.horizontal(|ui| {
             ui.label(format!("Memory usage for Compressing: {} MB.", memory.0));
             ui.label(format!("Memory usage for Decompressing: {} MB.", memory.1));
+            ui.label("Note: This is just an approximation.");
         });
     }
 
