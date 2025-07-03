@@ -76,9 +76,16 @@ pub fn download_changes(
     write_changes_to_file(changes)?;
     let _ = output_sender.clone().send("Starting Depot Downloader...\n".to_string());
     // Download path
-    let download_path = current_dir().unwrap().to_path_buf().join("Downloads")
+    let download_path = match settings.download_entire_depot {
+        false => 
+        current_dir().unwrap().to_path_buf().join("Downloads")
         .join(format!("{} - Depot {} (Build {} to {})",
-                      changes.name, changes.depot, changes.initial_build, changes.final_build));
+                      changes.name, changes.depot, changes.initial_build, changes.final_build)),
+        true => current_dir().unwrap().to_path_buf().join("Downloads")
+        .join(format!("{} - Depot {} (Build {})",
+                      changes.name, changes.depot, changes.initial_build)),
+    };
+        
     let download_path_clone = download_path.clone();
     // Run Depot Downloader
     let mut command = Command::new("./DepotDownloader");
