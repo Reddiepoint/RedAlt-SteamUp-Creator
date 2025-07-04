@@ -489,7 +489,21 @@ impl CreateUpdateUI {
                         .cursor_at_end(true),
                 );
                 while let Ok(output) = self.channels.output_receiver.try_recv() {
-                    self.stdout += &output;
+                    println!("Received output: {}", output);
+                    // Split stdout into lines
+                    let mut lines: Vec<&str> = self
+                        .stdout
+                        .lines()
+                        .filter(|line| {
+                            // If any of these, then exclude the line
+                            !(line.starts_with("Validating")
+                                || line.contains('%')
+                                || line.starts_with("Pre-allocating"))
+                        })
+                        .collect();
+
+                    lines.push(&output);
+                    self.stdout = lines.join("\n");
                     ui.scroll_to_cursor(None);
                     ui.ctx().request_repaint();
                 }
