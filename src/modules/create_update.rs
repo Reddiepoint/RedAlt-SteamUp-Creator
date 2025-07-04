@@ -494,6 +494,8 @@ impl CreateUpdateUI {
                     let mut lines: Vec<&str> = self
                         .stdout
                         .lines()
+                        .rev()
+                        .take(100)
                         .filter(|line| {
                             // If any of these, then exclude the line
                             !(line.starts_with("Validating")
