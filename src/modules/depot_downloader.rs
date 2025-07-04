@@ -181,16 +181,41 @@ pub fn download_changes(
             let input_window_opened_sender = input_window_opened_sender.clone();
             s.spawn(move || {
                 let mut buffer = [0; 1024];
+                let mut overflow = String::new();
                 loop {
                     match stdout.read(&mut buffer) {
-                        Ok(n) if n > 0 => {
-                            let _ = stdo_sender
-                                .send(String::from_utf8_lossy(&buffer[..n]).parse().unwrap());
-
-                            for pattern in patterns {
-                                if String::from_utf8_lossy(&buffer[..n]).contains(pattern) {
-                                    input_window_opened_sender.send(true).unwrap();
+                        Ok(0) => {
+                            if !overflow.is_empty() {
+                                let _ = stdo_sender.send(overflow.clone());
+                                if patterns.iter().any(|pattern| overflow.contains(pattern)) {
+                                    let _ = input_window_opened_sender.send(true);
                                 }
+                            }
+                            break;
+                        }
+                        Ok(n) => {
+                            overflow.push_str(String::from_utf8_lossy(&buffer[..n]).as_ref());
+                            // let _ = stdo_sender
+                            //     .send(String::from_utf8_lossy(&buffer[..n]).to_string());
+                            let mut lines = overflow.lines();
+                            let mut last_line = String::new();
+                            while let Some(line) = lines.next() {
+                                last_line = line.to_string();
+                                if let Some(_) = lines.clone().next() {
+                                    let _ = stdo_sender.send(line.trim().to_string());
+                                    if patterns.iter().any(|p| line.contains(p)) {
+                                        let _ = input_window_opened_sender.send(true);
+                                    }
+                                }
+                            }
+                            if overflow.ends_with('\n') {
+                                let _ = stdo_sender.send(last_line.clone());
+                                if patterns.iter().any(|p| last_line.contains(p)) {
+                                    let _ = input_window_opened_sender.send(true);
+                                }
+                                overflow.clear();
+                            } else {
+                                overflow = last_line;
                             }
                         }
                         _ => break,
