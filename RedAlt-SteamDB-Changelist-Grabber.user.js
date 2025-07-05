@@ -176,7 +176,11 @@ function createGetChangesButton() {
             if (!document.querySelector("#changesModal")) {
                 createModal();
             }
-            document.getElementById("changesModal").style.display = "block";
+
+            const modal = document.getElementById("changesModal");
+            if (modal) {
+                modal.style.display = "block";
+            }
         });
         buildsTitle.insertAdjacentElement("afterend", openModalButton);
     });
