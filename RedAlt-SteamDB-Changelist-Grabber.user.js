@@ -202,7 +202,6 @@ createGetChangesButton();
 /**
  * @typedef {Object} Changelog
  * @property {string} depot_id - The depot ID this changelog refers to.
- * @property {string} description - Description of the depot.
  * @property {string} manifest - Manifest ID.
  * @property {string[]} added - List of added files.
  * @property {string[]} removed - List of removed files.
