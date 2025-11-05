@@ -8,7 +8,7 @@
 // @grant       GM_getValue
 // @grant       GM_openInTab
 // @grant       window.close
-// @version     1.1.1
+// @version     1.1.2
 // @author      Reddiepoint
 // @description Aggregates the changes for a specified depot between different builds.
 // @updateURL   https://github.com/Reddiepoint/RedAlt-Steam-Update-Creator/raw/main/RedAlt-SteamDB-Changelist-Grabber.user.js
@@ -59,7 +59,7 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
                 for (let i = 0; i < versions.length; i++) {
                     const version = versions[i];
                     if (version.className === "diff-added") {
-                        const filePath = version.querySelector("ins").textContent;
+                        const filePath = version.querySelector("span > ins").textContent;
                         if (!existingChangelogObject.added.includes(filePath)) {
                             if (existingChangelogObject.removed.includes(filePath)) {
                                 existingChangelogObject.removed = existingChangelogObject.removed.filter(item => item.toString() !== filePath);
@@ -67,7 +67,7 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
                             existingChangelogObject.added.push(filePath);
                         }
                     } else if (version.className === "diff-removed") {
-                        const filePath = version.querySelector("del").textContent;
+                        const filePath = version.querySelector("span > del").textContent;
                         if (!existingChangelogObject.removed.includes(filePath)) {
                             if (existingChangelogObject.added.includes(filePath)) {
                                 existingChangelogObject.added = existingChangelogObject.added.filter(item => item.toString() !== filePath);
@@ -79,7 +79,7 @@ if (GM_getValue("gettingChangelogs", false) && window.location.href.includes("st
                         }
 
                     } else if (version.className === "diff-modified") {
-                        const filePath = version.querySelector("i").textContent;
+                        const filePath = version.querySelector("span > i").textContent;
                         if (!existingChangelogObject.added.includes(filePath) && !existingChangelogObject.modified.includes(filePath)) {
                             if (existingChangelogObject.removed.includes(filePath)) {
                                 existingChangelogObject.removed = existingChangelogObject.removed.filter(item => item.toString() !== filePath);
