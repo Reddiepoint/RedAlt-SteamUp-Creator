@@ -469,9 +469,9 @@ function getChangelogJob() {
                         changelog.manifest = manifestID;
                         return; // Return immediately after reaching manifest (last row)
                     }
-                    const file = change.querySelector("ins") ||
-                        change.querySelector("del") ||
-                        change.querySelector("i");
+                    const file = change.querySelector("span > ins") ||
+                        change.querySelector("span > del") ||
+                        change.querySelector("span > i");
                     const filePath = file.textContent.trim();
                     if (change.className === "diff-added") {
                         // If previously added, then skip
