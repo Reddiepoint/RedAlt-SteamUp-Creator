@@ -1,4 +1,4 @@
-use crate::modules::changes::Changes;
+use crate::modules::changes::{Changelog, Changes};
 use crossbeam_channel::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
 use std::env::current_dir;
@@ -36,6 +36,7 @@ pub struct DepotDownloaderSettings {
     pub depot_downloader_input_window_opened: bool,
     #[serde(skip)]
     pub input: String,
+    pub combine_depots: bool,
 }
 
 impl Default for DepotDownloaderSettings {
@@ -54,11 +55,12 @@ impl Default for DepotDownloaderSettings {
             download_entire_depot: false,
             depot_downloader_input_window_opened: false,
             input: String::new(),
+            combine_depots: false,
         }
     }
 }
 
-fn write_changes_to_file(changes: &Changes) -> std::io::Result<()> {
+fn write_changes_to_file(changes: &Changelog) -> std::io::Result<()> {
     let download_files = changes.added.join("\n") + "\n" + &changes.modified.join("\n");
     // Write changes to file files.txt
     let path = "files.txt";
@@ -68,33 +70,39 @@ fn write_changes_to_file(changes: &Changes) -> std::io::Result<()> {
 
 pub fn download_changes(
     changes: &Changes,
+    changelog: &Changelog,
     settings: &DepotDownloaderSettings,
     input_window_opened_sender: Sender<bool>,
     input_receiver: Receiver<String>,
     output_sender: Sender<String>,
 ) -> std::io::Result<PathBuf> {
-    write_changes_to_file(changes)?;
+    write_changes_to_file(changelog)?;
     let _ = output_sender
         .clone()
         .send("Starting Depot Downloader...\n".to_string());
     // Download path
-    let download_path = match settings.download_entire_depot {
+    let mut base_path = match settings.download_entire_depot {
         false => current_dir()
             .unwrap()
             .to_path_buf()
             .join("Downloads")
             .join(format!(
-                "{} - Depot {} (Build {} to {})",
-                changes.name, changes.depot, changes.initial_build, changes.final_build
+                "{} (Build {} to {})",
+                &changes.app_name, &changes.initial_build, &changes.final_build
             )),
         true => current_dir()
             .unwrap()
             .to_path_buf()
             .join("Downloads")
             .join(format!(
-                "{} - Depot {} (Build {})",
-                changes.name, changes.depot, changes.initial_build
+                "{} (Build {})",
+                &changes.app_name, changes.initial_build
             )),
+    };
+    let download_path = if settings.combine_depots {
+        base_path.join(format!("Depot {}", changelog.depot_id))
+    } else {
+        base_path
     };
 
     let download_path_clone = download_path.clone();
@@ -106,11 +114,11 @@ pub fn download_changes(
         .stderr(Stdio::piped())
         .args([
             "-app",
-            &changes.app,
+            &changes.app_id,
             "-depot",
-            &changes.depot,
+            &changelog.depot_id,
             "-manifest",
-            &changes.manifest,
+            &changelog.manifest,
         ])
         .args(["-dir", download_path.to_str().unwrap()]);
 
@@ -262,7 +270,7 @@ pub fn download_changes(
     });
     if settings.download_manifest {
         let _ = output_sender.send("Downloading manifest...\n".to_string());
-        let _ = download_manifest(download_path, changes, settings);
+        let _ = download_manifest(download_path, changes, changelog, settings);
         let _ = output_sender.send("Downloaded manifest.\n".to_string());
     }
     Arc::into_inner(result).unwrap().into_inner().unwrap()
@@ -271,6 +279,7 @@ pub fn download_changes(
 pub fn download_manifest(
     download_path: PathBuf,
     changes: &Changes,
+    changelog: &Changelog,
     settings: &DepotDownloaderSettings,
 ) -> std::io::Result<()> {
     // Run Depot Downloader
@@ -281,11 +290,11 @@ pub fn download_manifest(
         .stderr(Stdio::piped())
         .args([
             "-app",
-            &changes.app,
+            &changes.app_id,
             "-depot",
-            &changes.depot,
+            &changelog.depot_id,
             "-manifest",
-            &changes.manifest,
+            &changelog.manifest,
         ])
         .args(["-dir", download_path.to_str().unwrap()])
         .arg("-manifest-only");

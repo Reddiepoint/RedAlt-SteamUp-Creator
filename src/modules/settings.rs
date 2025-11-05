@@ -1,5 +1,4 @@
-use crate::modules::compression::{Archiver, CompressorSettings};
-use crate::modules::compression_settings::{SevenZipSettings, WinRARSettings};
+use crate::modules::compression::{Archiver, CompressorSettings, SevenZipSettings, WinRARSettings};
 use crate::modules::depot_downloader::DepotDownloaderSettings;
 use aes_gcm::aead::{Aead, Nonce, OsRng};
 use aes_gcm::{AeadCore, Aes256Gcm, Key, KeyInit};

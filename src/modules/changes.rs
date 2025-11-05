@@ -1,30 +1,18 @@
 use serde::Deserialize;
 
 #[derive(Clone, Default, Deserialize)]
-pub struct Changes {
-    pub name: String,
-    pub app: String,
-    pub depot: String,
-    pub initial_build: String,
-    pub final_build: String,
+pub struct Changelog {
+    pub depot_id: String,
+    pub manifest: String,
     pub added: Vec<String>,
     pub removed: Vec<String>,
     pub modified: Vec<String>,
-    pub manifest: String,
 }
-
-impl Changes {
-    pub fn new_error(error: String) -> Changes {
-        Changes {
-            name: String::new(),
-            app: "Failed to parse JSON".to_string(),
-            depot: String::new(),
-            initial_build: String::new(),
-            final_build: String::new(),
-            added: vec![],
-            removed: vec![],
-            modified: vec![],
-            manifest: error,
-        }
-    }
+#[derive(Clone, Default, Deserialize)]
+pub struct Changes {
+    pub app_name: String,
+    pub app_id: String,
+    pub initial_build: String,
+    pub final_build: String,
+    pub changelogs: Vec<Changelog>,
 }

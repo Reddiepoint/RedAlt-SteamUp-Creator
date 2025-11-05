@@ -1,5 +1,5 @@
 use crate::modules::app::TabBar;
-use crate::modules::changes::Changes;
+use crate::modules::changes::{Changelog, Changes};
 use crate::modules::compression::{Archiver, CompressorSettings};
 use crate::modules::depot_downloader::{download_changes, DepotDownloaderSettings};
 use crossbeam_channel::{Receiver, Sender};
@@ -12,7 +12,7 @@ use egui_file::FileDialog;
 use std::env::current_dir;
 use std::ffi::OsStr;
 use std::fmt::{Display, Formatter};
-use std::fs::create_dir;
+use std::fs::{create_dir, read_to_string};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::thread;
@@ -80,11 +80,12 @@ pub struct CreateUpdateUI {
     channels: CreateUpdateChannels,
     open_file_dialog: Option<FileDialog>,
     changes_json_file: Option<PathBuf>,
-    changes: Changes,
+    changes: Option<Changes>,
     target_os: TargetOS,
     compress_files: bool,
     stdout: String,
     child_process_running: bool,
+    checked_depots: Vec<bool>,
 }
 
 impl Default for CreateUpdateUI {
@@ -93,11 +94,12 @@ impl Default for CreateUpdateUI {
             channels: CreateUpdateChannels::default(),
             open_file_dialog: None,
             changes_json_file: None,
-            changes: Changes::default(),
+            changes: None,
             target_os: TargetOS::Windows,
             compress_files: true,
             stdout: String::new(),
             child_process_running: false,
+            checked_depots: Vec::new(),
         }
     }
 }
@@ -115,7 +117,7 @@ impl CreateUpdateUI {
         create_update_ui.display_file_dialog(ctx, ui);
         // Parse and display the changes
         create_update_ui.display_changes(ui);
-        if !create_update_ui.changes.depot.is_empty() {
+        if create_update_ui.changes.is_some() {
             create_update_ui.display_download_stuff(
                 ui,
                 depot_downloader_settings,
@@ -160,102 +162,109 @@ impl CreateUpdateUI {
     }
 
     fn display_changes(&mut self, ui: &mut Ui) {
-        // Open file and deserialise it
+        // Open file and deserialise it only once
         if let Some(file) = &self.changes_json_file {
-            if let Ok(file) = std::fs::read_to_string(file) {
-                // Get changes
-                self.changes = serde_json::from_str::<Changes>(&file)
-                    .unwrap_or_else(|error| Changes::new_error(error.to_string()));
-                // Display changes
-                let information_job = if !self.changes.depot.is_empty() {
-                    let mut job = LayoutJob::default();
-                    let normal = TextFormat {
-                        font_id: FontId::new(14.0, FontFamily::Proportional),
-                        ..Default::default()
-                    };
-                    let bold = TextFormat {
-                        font_id: FontId::new(14.0, FontFamily::Proportional),
-                        color: Color32::WHITE,
-                        ..Default::default()
-                    };
-
-                    job.append("Creating update for ", 0.0, normal.clone());
-                    job.append(&self.changes.name, 0.0, bold.clone());
-                    job.append(" (", 0.0, normal.clone());
-                    job.append(&self.changes.app.to_string(), 0.0, normal.clone());
-                    job.append(") (Depot ", 0.0, normal.clone());
-                    job.append(&self.changes.depot, 0.0, bold.clone());
-                    job.append(" - ", 0.0, normal.clone());
-                    job.append(&self.changes.manifest, 0.0, normal.clone());
-                    job.append(") from Build ", 0.0, normal.clone());
-                    job.append(&self.changes.initial_build, 0.0, bold.clone());
-                    job.append(" to Build ", 0.0, normal.clone());
-                    job.append(&self.changes.final_build, 0.0, bold.clone());
-
-                    job
-                } else {
-                    let mut job = LayoutJob::default();
-                    job.append(
-                        &self.changes.app.to_string(),
-                        0.0,
-                        TextFormat {
-                            font_id: FontId::new(14.0, FontFamily::Proportional),
-                            color: Color32::WHITE,
-                            ..Default::default()
-                        },
-                    );
-                    job
+            if let Ok(file) = read_to_string(file) {
+                match serde_json::from_str::<Changes>(&file) {
+                    Ok(changes) => {
+                        self.changes = Some(changes.clone());
+                        self.changes_json_file = None;
+                        self.checked_depots =
+                            changes.changelogs.iter().map(|changelog| true).collect();
+                    }
+                    Err(_) => {
+                        self.stdout += "Failed to parse JSON file.\n";
+                        return;
+                    }
                 };
-
-                ui.label(information_job);
-                let lengths = [
-                    self.changes.added.len(),
-                    self.changes.removed.len(),
-                    self.changes.modified.len(),
-                ];
-                let num_columns = lengths.iter().filter(|&&x| x > 0).count();
-                let max_length = lengths.iter().max();
-
-                ScrollArea::both()
-                    .id_salt("Changes")
-                    .max_height(ui.available_height() / 3.0)
-                    .show(ui, |ui| {
-                        ui.columns(num_columns, |columns| {
-                            if !self.changes.added.is_empty() {
-                                columns[0].heading("New files");
-                                columns[0].add(
-                                    TextEdit::multiline(
-                                        &mut self.changes.added.join("\n").to_string(),
-                                    )
-                                    .desired_rows(*max_length.unwrap()),
-                                );
-                                columns.rotate_left(1);
-                            }
-
-                            if !self.changes.removed.is_empty() {
-                                columns[0].heading("Removed files");
-                                columns[0].add(
-                                    TextEdit::multiline(
-                                        &mut self.changes.removed.join("\n").to_string(),
-                                    )
-                                    .desired_rows(*max_length.unwrap()),
-                                );
-                                columns.rotate_left(1);
-                            }
-
-                            if !self.changes.modified.is_empty() {
-                                columns[0].heading("Modified files");
-                                columns[0].add(
-                                    TextEdit::multiline(
-                                        &mut self.changes.modified.join("\n").to_string(),
-                                    )
-                                    .desired_rows(*max_length.unwrap()),
-                                );
-                            }
-                        });
-                    });
             }
         }
+        let changes = if self.changes.is_none() {
+            return;
+        } else {
+            self.changes.as_ref().unwrap()
+        };
+
+        // Display
+        let information_job = {
+            let mut job = LayoutJob::default();
+            let normal = TextFormat {
+                font_id: FontId::new(14.0, FontFamily::Proportional),
+                ..Default::default()
+            };
+            let bold = TextFormat {
+                font_id: FontId::new(14.0, FontFamily::Proportional),
+                color: Color32::WHITE,
+                ..Default::default()
+            };
+
+            job.append("Creating update for ", 0.0, normal.clone());
+            job.append(&changes.app_name, 0.0, bold.clone());
+            job.append(" (", 0.0, normal.clone());
+            job.append(&changes.app_id.to_string(), 0.0, normal.clone());
+            job.append(") from Build ", 0.0, normal.clone());
+            job.append(&changes.initial_build, 0.0, bold.clone());
+            job.append(" to Build ", 0.0, normal.clone());
+            job.append(&changes.final_build, 0.0, bold.clone());
+
+            job
+        };
+
+        ui.label(information_job);
+        let mut lengths = Vec::with_capacity(3);
+        let mut added = Vec::new();
+        let mut removed = Vec::new();
+        let mut modified = Vec::new();
+        changes
+            .changelogs
+            .iter()
+            .enumerate()
+            .for_each(|(index, changelog)| {
+                lengths[0] += changelog.added.len();
+                added.append(&mut changelog.added.clone());
+                lengths[1] += changelog.removed.len();
+                removed.append(&mut changelog.removed.clone());
+                lengths[2] += changelog.modified.len();
+                modified.append(&mut changelog.modified.clone());
+
+                ui.label("Depots:");
+                ui.checkbox(&mut self.checked_depots[index], &changelog.depot_id);
+            });
+        let num_columns = lengths.iter().filter(|&&x| x > 0).count();
+        let max_length = lengths.iter().max();
+
+        ScrollArea::both()
+            .id_salt("Changes")
+            .max_height(ui.available_height() / 3.0)
+            .show(ui, |ui| {
+                ui.columns(num_columns, |columns| {
+                    if !added.is_empty() {
+                        columns[0].heading("New files");
+                        columns[0].add(
+                            TextEdit::multiline(&mut added.join("\n").to_string())
+                                .desired_rows(*max_length.unwrap()),
+                        );
+                        columns.rotate_left(1);
+                    }
+
+                    if !removed.is_empty() {
+                        columns[0].heading("Removed files");
+                        columns[0].add(
+                            TextEdit::multiline(&mut removed.join("\n").to_string())
+                                .desired_rows(*max_length.unwrap()),
+                        );
+                        columns.rotate_left(1);
+                    }
+
+                    if !modified.is_empty() {
+                        columns[0].heading("Modified files");
+                        columns[0].add(
+                            TextEdit::multiline(&mut modified.join("\n").to_string())
+                                .desired_rows(*max_length.unwrap()),
+                        );
+                    }
+                });
+            });
     }
 
     fn display_download_stuff(
@@ -275,7 +284,10 @@ impl CreateUpdateUI {
                     ui.selectable_value(&mut self.target_os, TargetOS::Mac, "Mac");
                 });
         });
-
+        ui.checkbox(
+            &mut depot_downloader_settings.combine_depots,
+            "Combine depots into one",
+        );
         ui.checkbox(
             &mut depot_downloader_settings.download_entire_depot,
             "Ignore changes and download entire depot",
@@ -301,23 +313,26 @@ impl CreateUpdateUI {
                     )
                     .clicked()
                 {
-                    let changes = self.changes.clone();
-                    let depot_downloader_settings = depot_downloader_settings.clone();
-                    let sender = self.channels.input_window_opened_sender.clone();
-                    let receiver = self.channels.input_receiver.clone();
-                    let path_sender = self.channels.depot_downloader_path_sender.clone();
-                    let stdio_sender = self.channels.output_sender.clone();
+                    // let changes = self.changes.clone();
+                    // let depot_downloader_settings = depot_downloader_settings.clone();
+                    // let sender = self.channels.input_window_opened_sender.clone();
+                    // let receiver = self.channels.input_receiver.clone();
+                    // let path_sender = self.channels.depot_downloader_path_sender.clone();
+                    // let stdio_sender = self.channels.output_sender.clone();
+                    // self.child_process_running = true;
+                    // thread::spawn(move || {
+                    //     let status = download_changes(
+                    //         changes.as_ref().unwrap(),
+                    //         changes.as_ref().unwrap().changelogs,
+                    //         &depot_downloader_settings,
+                    //         sender,
+                    //         receiver,
+                    //         stdio_sender,
+                    //     );
+                    //     let _ = path_sender.send(status);
+                    // });
                     self.child_process_running = true;
-                    thread::spawn(move || {
-                        let status = download_changes(
-                            &changes,
-                            &depot_downloader_settings,
-                            sender,
-                            receiver,
-                            stdio_sender,
-                        );
-                        let _ = path_sender.send(status);
-                    });
+                    self.download_stuff(&self.changes.as_ref().unwrap(), depot_downloader_settings, compression_settings);
                 }
 
                 if self.child_process_running {
@@ -328,6 +343,49 @@ impl CreateUpdateUI {
             *tab_bar = TabBar::Settings;
         }
 
+        if let Ok(status) = self.channels.compression_status_receiver.try_recv() {
+            match status {
+                Ok(_) => {
+                    if self.compress_files {
+                        let _ = self
+                            .channels
+                            .output_sender
+                            .send("\nFinished compressing files.\n".to_string());
+                    }
+                }
+                Err(error) => {
+                    let _ = self
+                        .channels
+                        .output_sender
+                        .send(format!("\nFailed to compress files: {error}.\n"));
+                }
+            }
+            self.child_process_running = false;
+        }
+    }
+
+    fn download_stuff(
+        &self,
+        changes: &Changes,
+        depot_downloader_settings: &mut DepotDownloaderSettings,
+        compression_settings: &mut CompressorSettings,
+    ) {
+        let depot_downloader_settings = depot_downloader_settings.clone();
+        let sender = self.channels.input_window_opened_sender.clone();
+        let receiver = self.channels.input_receiver.clone();
+        let path_sender = self.channels.depot_downloader_path_sender.clone();
+        let stdio_sender = self.channels.output_sender.clone();
+        for changelog in changes.changelogs {
+            let status = download_changes(
+                changes,
+                changes.changelogs.first().unwrap(),
+                &depot_downloader_settings,
+                sender.clone(),
+                receiver.clone(),
+                stdio_sender.clone(),
+            );
+            let _ = path_sender.send(status);
+        }
         if let Ok(status) = self.channels.depot_downloader_path_receiver.try_recv() {
             match status {
                 Ok(download_path) => {
@@ -357,35 +415,45 @@ impl CreateUpdateUI {
                                 )),
                             );
                         }
-                        match self.target_os {
-                            TargetOS::Windows => {
-                                let installer_executable = "RedAlt-SteamUp-Installer.exe";
+                        // match self.target_os {
+                            // TargetOS::Windows => {
+                            //     let installer_executable = "RedAlt-SteamUp-Installer.exe";
+                            //     let _ = std::fs::copy(
+                            //         current_dir().unwrap().join(installer_executable),
+                            //         installer_path.join(installer_executable),
+                            //     );
+                            // }
+                            // TargetOS::Linux => {
+                            //     let installer_executable = "RedAlt-SteamUp-Installer_amd64";
+                            //     let _ = std::fs::copy(
+                            //         current_dir().unwrap().join(installer_executable),
+                            //         installer_path.join(installer_executable),
+                            //     );
+                            // }
+                            // TargetOS::Mac => {
+                            //     let installer_executable = "RedAlt-SteamUp-Installer_darwin";
+                            //     let _ = std::fs::copy(
+                            //         current_dir().unwrap().join(installer_executable),
+                            //         installer_path.join(installer_executable),
+                            //     );
+                            // }
+                        //
+                        // }
+
+                        let installer_executables = ["RedAlt-SteamUp-Installer.exe", "RedAlt-SteamUp-Installer_amd64", "RedAlt-SteamUp-Installer_darwin"];
+                        for executable in installer_executables {
                                 let _ = std::fs::copy(
-                                    current_dir().unwrap().join(installer_executable),
-                                    installer_path.join(installer_executable),
+                                    current_dir().unwrap().join(executable),
+                                    installer_path.join(executable),
                                 );
-                            }
-                            TargetOS::Linux => {
-                                let installer_executable = "RedAlt-SteamUp-Installer_amd64";
-                                let _ = std::fs::copy(
-                                    current_dir().unwrap().join(installer_executable),
-                                    installer_path.join(installer_executable),
-                                );
-                            }
-                            TargetOS::Mac => {
-                                let installer_executable = "RedAlt-SteamUp-Installer_darwin";
-                                let _ = std::fs::copy(
-                                    current_dir().unwrap().join(installer_executable),
-                                    installer_path.join(installer_executable),
-                                );
-                            }
                         }
                     }
 
                     if self.compress_files {
                         let archiver = compression_settings.archiver.clone();
                         let download_path = compression_settings.download_path.clone();
-                        let seven_zip_settings = compression_settings.seven_zip_settings.clone();
+                        let seven_zip_settings =
+                            compression_settings.seven_zip_settings.clone();
                         let win_rar_settings = compression_settings.win_rar_settings.clone();
                         let input_window_opened_sender =
                             self.channels.input_window_opened_sender.clone();
@@ -423,28 +491,7 @@ impl CreateUpdateUI {
                 }
             }
         }
-
-        if let Ok(status) = self.channels.compression_status_receiver.try_recv() {
-            match status {
-                Ok(_) => {
-                    if self.compress_files {
-                        let _ = self
-                            .channels
-                            .output_sender
-                            .send("\nFinished compressing files.\n".to_string());
-                    }
-                }
-                Err(error) => {
-                    let _ = self
-                        .channels
-                        .output_sender
-                        .send(format!("\nFailed to compress files: {error}.\n"));
-                }
-            }
-            self.child_process_running = false;
-        }
     }
-
     fn display_depot_downloader_input_window(
         &mut self,
         ui: &mut Ui,
