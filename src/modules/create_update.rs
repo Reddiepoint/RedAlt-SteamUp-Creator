@@ -211,7 +211,7 @@ impl CreateUpdateUI {
         };
 
         ui.label(information_job);
-        let mut lengths = Vec::with_capacity(3);
+        let mut lengths = [0, 0, 0];
         let mut added = Vec::new();
         let mut removed = Vec::new();
         let mut modified = Vec::new();
@@ -285,10 +285,6 @@ impl CreateUpdateUI {
                 });
         });
         ui.checkbox(
-            &mut depot_downloader_settings.combine_depots,
-            "Combine depots into one",
-        );
-        ui.checkbox(
             &mut depot_downloader_settings.download_entire_depot,
             "Ignore changes and download entire depot",
         );
@@ -298,6 +294,7 @@ impl CreateUpdateUI {
         );
         ui.checkbox(&mut self.compress_files, "Compress files after downloading");
 
+        // Check if credentials entered and if not, then go to settings
         if !depot_downloader_settings.username.is_empty()
             && (!depot_downloader_settings.password.is_empty()
                 || depot_downloader_settings.remember_credentials)
@@ -313,26 +310,12 @@ impl CreateUpdateUI {
                     )
                     .clicked()
                 {
-                    // let changes = self.changes.clone();
-                    // let depot_downloader_settings = depot_downloader_settings.clone();
-                    // let sender = self.channels.input_window_opened_sender.clone();
-                    // let receiver = self.channels.input_receiver.clone();
-                    // let path_sender = self.channels.depot_downloader_path_sender.clone();
-                    // let stdio_sender = self.channels.output_sender.clone();
-                    // self.child_process_running = true;
-                    // thread::spawn(move || {
-                    //     let status = download_changes(
-                    //         changes.as_ref().unwrap(),
-                    //         changes.as_ref().unwrap().changelogs,
-                    //         &depot_downloader_settings,
-                    //         sender,
-                    //         receiver,
-                    //         stdio_sender,
-                    //     );
-                    //     let _ = path_sender.send(status);
-                    // });
                     self.child_process_running = true;
-                    self.download_stuff(&self.changes.as_ref().unwrap(), depot_downloader_settings, compression_settings);
+                    self.download_stuff(
+                        &self.changes.as_ref().unwrap(),
+                        depot_downloader_settings,
+                        compression_settings,
+                    );
                 }
 
                 if self.child_process_running {
@@ -375,11 +358,12 @@ impl CreateUpdateUI {
         let receiver = self.channels.input_receiver.clone();
         let path_sender = self.channels.depot_downloader_path_sender.clone();
         let stdio_sender = self.channels.output_sender.clone();
-        for changelog in changes.changelogs {
+        for changelog in changes.changelogs.iter() {
             let status = download_changes(
                 changes,
-                changes.changelogs.first().unwrap(),
+                changelog,
                 &depot_downloader_settings,
+                self.target_os.to_string(),
                 sender.clone(),
                 receiver.clone(),
                 stdio_sender.clone(),
@@ -396,64 +380,30 @@ impl CreateUpdateUI {
                     compression_settings.download_path = download_path.clone();
                     // Copy JSON changes file to download path
                     if !depot_downloader_settings.download_entire_depot {
-                        let installer_path = download_path.join(".RedAlt-SteamUp-Installer");
+                        let installer_path = download_path.join("*RedAlt-SteamUp-Installer");
                         let _ = create_dir(&installer_path);
                         if let Some(file) = &self.changes_json_file {
                             let changes_path = installer_path.join(file.file_name().unwrap());
                             let _ = std::fs::copy(file, changes_path).unwrap();
                         }
 
-                        if depot_downloader_settings.download_manifest {
-                            let _ = std::fs::rename(
-                                download_path.join(format!(
-                                    "manifest_{}_{}.txt",
-                                    self.changes.depot, self.changes.manifest
-                                )),
-                                installer_path.join(format!(
-                                    "manifest_{}_{}.txt",
-                                    self.changes.depot, self.changes.manifest
-                                )),
-                            );
-                        }
-                        // match self.target_os {
-                            // TargetOS::Windows => {
-                            //     let installer_executable = "RedAlt-SteamUp-Installer.exe";
-                            //     let _ = std::fs::copy(
-                            //         current_dir().unwrap().join(installer_executable),
-                            //         installer_path.join(installer_executable),
-                            //     );
-                            // }
-                            // TargetOS::Linux => {
-                            //     let installer_executable = "RedAlt-SteamUp-Installer_amd64";
-                            //     let _ = std::fs::copy(
-                            //         current_dir().unwrap().join(installer_executable),
-                            //         installer_path.join(installer_executable),
-                            //     );
-                            // }
-                            // TargetOS::Mac => {
-                            //     let installer_executable = "RedAlt-SteamUp-Installer_darwin";
-                            //     let _ = std::fs::copy(
-                            //         current_dir().unwrap().join(installer_executable),
-                            //         installer_path.join(installer_executable),
-                            //     );
-                            // }
-                        //
-                        // }
-
-                        let installer_executables = ["RedAlt-SteamUp-Installer.exe", "RedAlt-SteamUp-Installer_amd64", "RedAlt-SteamUp-Installer_darwin"];
+                        let installer_executables = [
+                            "RedAlt-SteamUp-Installer.exe",
+                            "RedAlt-SteamUp-Installer_amd64",
+                            "RedAlt-SteamUp-Installer_darwin",
+                        ];
                         for executable in installer_executables {
-                                let _ = std::fs::copy(
-                                    current_dir().unwrap().join(executable),
-                                    installer_path.join(executable),
-                                );
+                            let _ = std::fs::copy(
+                                current_dir().unwrap().join(executable),
+                                installer_path.join(format!("*{}", executable)),
+                            );
                         }
                     }
 
                     if self.compress_files {
                         let archiver = compression_settings.archiver.clone();
                         let download_path = compression_settings.download_path.clone();
-                        let seven_zip_settings =
-                            compression_settings.seven_zip_settings.clone();
+                        let seven_zip_settings = compression_settings.seven_zip_settings.clone();
                         let win_rar_settings = compression_settings.win_rar_settings.clone();
                         let input_window_opened_sender =
                             self.channels.input_window_opened_sender.clone();
@@ -487,7 +437,7 @@ impl CreateUpdateUI {
                         "Depot Downloader exited unsuccessfully: {error}.\n"
                     ));
 
-                    self.child_process_running = false;
+                    // self.child_process_running = false;
                 }
             }
         }

@@ -1,15 +1,15 @@
+use crossbeam_channel::{Receiver, Sender};
 use egui_file::FileDialog;
 use serde::{Deserialize, Serialize};
 use std::env::current_dir;
 use std::fmt::{Display, Formatter};
-use std::path::PathBuf;
-use which::which;
-use std::thread;
-use crossbeam_channel::{Receiver, Sender};
-use std::process::{Command, Stdio};
 use std::fs::{create_dir, remove_dir_all};
-use std::sync::{Arc, Mutex};
 use std::io::{Read, Write};
+use std::path::PathBuf;
+use std::process::{Command, Stdio};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use which::which;
 
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub enum Archiver {

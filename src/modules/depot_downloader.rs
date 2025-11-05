@@ -2,6 +2,7 @@ use crate::modules::changes::{Changelog, Changes};
 use crossbeam_channel::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
 use std::env::current_dir;
+use std::fs::create_dir;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -36,7 +37,6 @@ pub struct DepotDownloaderSettings {
     pub depot_downloader_input_window_opened: bool,
     #[serde(skip)]
     pub input: String,
-    pub combine_depots: bool,
 }
 
 impl Default for DepotDownloaderSettings {
@@ -55,7 +55,6 @@ impl Default for DepotDownloaderSettings {
             download_entire_depot: false,
             depot_downloader_input_window_opened: false,
             input: String::new(),
-            combine_depots: false,
         }
     }
 }
@@ -72,6 +71,7 @@ pub fn download_changes(
     changes: &Changes,
     changelog: &Changelog,
     settings: &DepotDownloaderSettings,
+    target_os: String,
     input_window_opened_sender: Sender<bool>,
     input_receiver: Receiver<String>,
     output_sender: Sender<String>,
@@ -80,31 +80,25 @@ pub fn download_changes(
     let _ = output_sender
         .clone()
         .send("Starting Depot Downloader...\n".to_string());
-    // Download path
-    let mut base_path = match settings.download_entire_depot {
-        false => current_dir()
-            .unwrap()
-            .to_path_buf()
-            .join("Downloads")
-            .join(format!(
-                "{} (Build {} to {})",
-                &changes.app_name, &changes.initial_build, &changes.final_build
-            )),
-        true => current_dir()
-            .unwrap()
-            .to_path_buf()
-            .join("Downloads")
-            .join(format!(
-                "{} (Build {})",
-                &changes.app_name, changes.initial_build
-            )),
-    };
-    let download_path = if settings.combine_depots {
-        base_path.join(format!("Depot {}", changelog.depot_id))
-    } else {
-        base_path
-    };
+    // Download directory
+    let base_path = current_dir().unwrap().to_path_buf().join("Downloads").join(
+        match settings.download_entire_depot {
+            true => {
+                format!(
+                    "{} (Build {}) {}",
+                    &changes.app_name, changes.initial_build, target_os
+                )
+            }
+            false => {
+                format!(
+                    "{} (Build {} to {}) {}",
+                    &changes.app_name, &changes.initial_build, &changes.final_build, target_os
+                )
+            }
+        },
+    );
 
+    let download_path = base_path;
     let download_path_clone = download_path.clone();
     // Run Depot Downloader
     let mut command = Command::new("./DepotDownloader");
@@ -161,6 +155,7 @@ pub fn download_changes(
     let result = Arc::new(Mutex::new(Err(std::io::Error::other("Unknown error"))));
 
     thread::scope(|s| {
+        // Write error to output window and check if Steam Guard code is required
         if let Some(mut stderr) = child.stderr.take() {
             let stdo_sender = output_sender.clone();
             let input_window_opened_sender = input_window_opened_sender.clone();
@@ -270,19 +265,43 @@ pub fn download_changes(
     });
     if settings.download_manifest {
         let _ = output_sender.send("Downloading manifest...\n".to_string());
-        let _ = download_manifest(download_path, changes, changelog, settings);
+        let installer_path = download_path.join("*RedAlt-SteamUp-Installer");
+        let _ = create_dir(&installer_path);
+        let _ = download_manifest(&download_path, changes, changelog, settings);
+        let _ = std::fs::rename(
+            download_path.join(format!(
+                "manifest_{}_{}.txt",
+                changelog.depot_id, changelog.manifest,
+            )),
+            installer_path.join(format!(
+                "manifest_{}_{}.txt",
+                changelog.depot_id, changelog.manifest,
+            )),
+        );
+        let depot_downloader_path = download_path.join(".DepotDownloader");
+        let _ = std::fs::rename(
+            depot_downloader_path.join(format!(
+                "{}_{}.manifest",
+                changelog.depot_id, changelog.manifest,
+            )),
+            installer_path.join(format!(
+                "{}_{}.manifest",
+                changelog.depot_id, changelog.manifest,
+            )),
+        );
         let _ = output_sender.send("Downloaded manifest.\n".to_string());
     }
     Arc::into_inner(result).unwrap().into_inner().unwrap()
 }
 
 pub fn download_manifest(
-    download_path: PathBuf,
+    download_path: &PathBuf,
     changes: &Changes,
     changelog: &Changelog,
     settings: &DepotDownloaderSettings,
 ) -> std::io::Result<()> {
     // Run Depot Downloader
+    // src/modules/create_update.rs:349
     let mut command = Command::new("./DepotDownloader");
     command
         .stdin(Stdio::piped())
